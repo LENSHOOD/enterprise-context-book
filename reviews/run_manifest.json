@@ -5,6 +5,13 @@
   "mode": "ultradeep-adapted",
   "scope": ["manuscript", "citations", "northstar", "linux-ebpf", "full-linux", "vitepress", "release"],
   "authority": ["docs/BOOK_CHARTER.md", "docs/OUTLINE.md", "docs/CASE_SPEC.md"],
+  "publication": {
+    "repository": "https://github.com/LENSHOOD/enterprise-context-book",
+    "site": "https://lenshood.github.io/enterprise-context-book/",
+    "initial_commit": "509056ef04428fe9510b1af71a164c6d520aedea",
+    "pages_run": "https://github.com/LENSHOOD/enterprise-context-book/actions/runs/33179598875",
+    "tag": "v1.0.0-rc.2"
+  },
   "verdict": "not-cleared",
-  "blocking_gates": ["manuscript_length", "central_bibliography", "browser_qa", "full_kernel_machine_readable_evidence", "remote_pages_verification", "version_control_integration"]
+  "blocking_gates": ["manuscript_length", "central_bibliography", "full_kernel_machine_readable_evidence"]
 }

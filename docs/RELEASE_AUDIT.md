@@ -12,9 +12,9 @@
 | Linux eBPF 案例 | CLI、fixture 与 syntax-only 测试 | 案例目录运行 `unittest discover` 和 `python3 -m linux_kb ingest --help` | 通过（syntax-only） |
 | 完整 Linux 番外 | 保存 Markdown 报告；缺少本次全仓运行的机器可读原始摘要 | 人工复核报告，无法在 CI 重跑全仓 | 未验证 |
 | VitePress 与 Mermaid | 构建接入 Mermaid 转换和内部死链检查 | `npm run docs:build` 后检索 `language-mermaid` | 通过 |
-| 浏览器 QA | 旧 QA 早于本轮结构与 Mermaid 修改 | 桌面与 375px 人工复核 | 未验证 |
-| GitHub Pages | 测试通过后允许构建与 RC 预览；独立 `release_gate` 继续执行 8 万字发布门 | 远端 Actions 运行记录 | 未验证 |
-| 版本控制接入 | 位于父级 Git 工作树，但书稿尚未纳入索引或独立公开仓库 | `git ls-files`、提交哈希与发布 tag | 未通过 |
+| 浏览器 QA | 线上首页与第 8 章已在 1280×720、375×812 复核；无横向溢出或破图，Mermaid 已转为 SVG，搜索“本体”命中预期结果，控制台无错误 | 浏览器人工复核 | 通过 |
+| GitHub Pages | 测试、构建和部署三项远端任务成功；独立 `release_gate` 继续执行正式版 8 万字门 | [Actions 运行 33179598875](https://github.com/LENSHOOD/enterprise-context-book/actions/runs/33179598875) | 通过（RC 预览） |
+| 版本控制接入 | 已建立独立公开仓库，首个发布提交为 `509056ef04428fe9510b1af71a164c6d520aedea` | 仓库、提交、tag 与 Release | 通过 |
 | 许可与维护 | 双许可证、贡献、安全和版本材料存在 | 核对根目录法律文本 | 通过 |
 
 ## 已知边界
@@ -22,10 +22,14 @@
 - Linux 基线是 `syntax-only`，真实 v6.12 运行报告记录 9,632 个未解析候选；它用于召回和研究导航，不声称编译器精度。
 - Northstar 使用离线同义词 Jaccard 代理而非向量检索；数据库、REST/MCP、持久任务和真实工具网关均未交付。
 - 完整 npm 开发依赖审计包含 Vite 开发服务器已知问题；生产静态依赖审计为零，站点不部署开发服务器。
-- 项目目录目前位于父级 Git 工作树中但尚未纳入索引；是否拆成独立公开仓库、首次提交与推送属于发布动作，不在本轮修订授权范围内。
+- 本项目使用嵌套的独立 Git 根目录，未将父级文档仓库的任何文件纳入公开历史；`node_modules/`、VitePress 构建产物和 Python 缓存均被忽略。
 
-## 待执行发布动作
+## 发布记录
 
-版本控制接入需要由发布者在两条路径中选择一条：将本书纳入父仓库索引并在发布提交上打 tag；或拆出独立公开仓库，再配置 GitHub Pages。面向个人公开发布时，独立仓库的权限、Issue、勘误和发布历史更清晰，因此是默认建议；本轮不代替发布者执行建仓、提交、推送或远端配置。
+- 公开仓库：<https://github.com/LENSHOOD/enterprise-context-book>
+- 在线阅读：<https://lenshood.github.io/enterprise-context-book/>
+- 首次部署提交：`509056ef04428fe9510b1af71a164c6d520aedea`
+- 首次 Pages 流水线：<https://github.com/LENSHOOD/enterprise-context-book/actions/runs/33179598875>
+- 发布版本：`v1.0.0-rc.2`（预发布）
 
-执行前应确认 `node_modules/`、`book/.vitepress/dist/` 与各级 `__pycache__/` 不进入索引，`package-lock.json` 进入索引；执行后记录仓库 URL、发布 commit、tag、Actions 运行和 Pages 地址，才能关闭 `version_control_integration` 与 `remote_pages_verification`。
+该版本已公开，但 `verdict` 仍为 `not-cleared`：它是可阅读、可运行的 RC 预览，不等同于已通过篇幅、集中参考文献和完整 Linux 全仓机器证据门的正式 `v1.0.0`。
