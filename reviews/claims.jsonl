@@ -1,0 +1,8 @@
+{"claim_id":"R-001","claim":"Northstar fulfills CASE_SPEC as a complete reproducible case","status":"contradicted","severity":"critical","evidence":["CASE_SPEC.md:15-47","examples/enterprise-case/data/knowledge.json","examples/enterprise-case/src/northstar.py"]}
+{"claim_id":"R-002","claim":"All diagrams render","status":"contradicted","severity":"critical","evidence":["book/appendices.md:42","book/.vitepress/dist/part-3/chapter-10.html"]}
+{"claim_id":"R-003","claim":"Injection-boundary tests exist","status":"contradicted","severity":"critical","evidence":["book/appendices.md:45","examples/enterprise-case/tests/test_northstar.py"]}
+{"claim_id":"R-004","claim":"Chapter 18 commands are reproducible","status":"contradicted","severity":"critical","evidence":["book/part-5/chapter-18.md:113-123","examples/linux-ebpf-case/linux_kb/__main__.py:14-44"]}
+{"claim_id":"R-005","claim":"Linux v6.12 resolves to adc218676eef25575469234709c2d87185ca223a","status":"supported","severity":"info","evidence":["git ls-remote refs/tags/v6.12^{}","examples/linux-ebpf-case/INTEGRATION_REPORT.md:9"]}
+{"claim_id":"R-006","claim":"Mem0 paper is authored by Yu Wang et al.","status":"contradicted","severity":"medium","evidence":["book/part-2/chapter-09.md:85","https://arxiv.org/abs/2504.19413"]}
+{"claim_id":"R-007","claim":"Root LICENSE contains complete CC legal text","status":"contradicted","severity":"high","evidence":["book/license.md:3","LICENSE"]}
+{"claim_id":"R-008","claim":"All 50 unique public URLs are reachable on review date","status":"supported","severity":"info","evidence":["curl redirect/status audit 2026-08-23"]}

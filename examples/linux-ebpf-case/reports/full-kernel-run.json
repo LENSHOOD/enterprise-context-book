@@ -1,0 +1,25 @@
+{
+  "evidence_status": "transcribed-summary-no-raw-log",
+  "source_report": "../FULL_KERNEL_REPORT.md",
+  "ref": "v6.12",
+  "commit": "adc218676eef25575469234709c2d87185ca223a",
+  "run_date": "2026-08-23",
+  "mode": "sqlite-syntax-only",
+  "elapsed_seconds": 175.809,
+  "scan_write_seconds": 137.970,
+  "tracked_paths": 86680,
+  "ingested_files": 64882,
+  "code_files_approx": 61390,
+  "nodes": 1544788,
+  "edges": 5601741,
+  "calls_resolved_by_unique_name": 1676138,
+  "calls_candidate_ambiguous_or_missing": 2436142,
+  "db_bytes": 3881082880,
+  "tool_version": "uncommitted-2026-08-23",
+  "host": "local-machine-redacted",
+  "limitations": [
+    "The raw database and execution log were not retained in the repository.",
+    "Counts are syntax-only candidates and must not be interpreted as compiler-verified facts.",
+    "Timing is a single local run, not a controlled benchmark."
+  ]
+}

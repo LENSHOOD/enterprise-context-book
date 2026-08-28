@@ -1,0 +1,7 @@
+node_modules/
+book/.vitepress/cache/
+book/.vitepress/dist/
+examples/**/__pycache__/
+examples/**/generated/
+examples/**/generated-*/
+.DS_Store

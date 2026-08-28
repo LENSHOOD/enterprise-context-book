@@ -1,0 +1,7 @@
+{"evidence_id":"E-001","source_id":"S-001","claim":"RAG combines parametric and non-parametric memory","locator":"abstract","support":"direct"}
+{"evidence_id":"E-002","source_id":"S-002","claim":"RAPTOR recursively clusters and summarizes chunks into a tree","locator":"abstract","support":"direct"}
+{"evidence_id":"E-003","source_id":"S-003","claim":"GraphRAG builds an entity graph and community summaries for global questions","locator":"abstract","support":"direct"}
+{"evidence_id":"E-004","source_id":"S-004","claim":"Mem0 author list differs from the book bibliography","locator":"metadata authors","support":"direct"}
+{"evidence_id":"E-005","source_id":"S-006","claim":"BTF includes type, function and line information","locator":"official documentation","support":"direct"}
+{"evidence_id":"E-006","source_id":"S-007","claim":"Verifier tracks register and stack state across paths","locator":"official documentation","support":"direct"}
+{"evidence_id":"E-007","source_id":"S-010","claim":"v6.12 annotated tag dereferences to adc218676eef25575469234709c2d87185ca223a","locator":"refs/tags/v6.12^{}","support":"direct"}

@@ -1,0 +1,14 @@
+[
+  {"from":"event-order-cancelled","type":"CONSUMED_BY","to":"code-refund-consumer","evidence_tier":"resolved","evidence":"code://northstar/refund-worker@abc123/consumer.py#handle_order_cancelled"},
+  {"from":"event-order-cancelled","type":"CONSUMED_BY","to":"code-inventory-consumer","evidence_tier":"resolved","evidence":"code://northstar/inventory@def456/events.py#release_reservation"},
+  {"from":"event-order-cancelled","type":"CONSUMED_BY","to":"code-notification-consumer","evidence_tier":"resolved","evidence":"code://northstar/notification@987fed/consumer.py#send_cancelled"},
+  {"from":"service-refund-worker","type":"DOCUMENTED_BY","to":"runbook-refund-backlog","evidence_tier":"asserted","evidence":"knowledge://northstar/runbook/refund-backlog@2026-08-01"},
+  {"from":"incident-refund-1042","type":"AFFECTED","to":"code-refund-consumer","evidence_tier":"observed","evidence":"knowledge://northstar/incident/INC-1042@2026-08-18"},
+  {"from":"service-refund-worker","type":"CALLS","to":"api-create-refund","evidence_tier":"resolved","evidence":"code://northstar/refund-worker@abc123/consumer.py#handle_order_cancelled"},
+  {"from":"repo-refund-worker","type":"IMPLEMENTS","to":"api-create-refund","evidence_tier":"deterministic","evidence":"code://northstar/refund-worker@abc123/payment_client.py#create_refund"},
+  {"from":"team-payments-oncall","type":"ON_CALL_FOR","to":"service-refund-worker","evidence_tier":"asserted","evidence":"knowledge://northstar/service-catalog@2026-08-20#refund-worker"},
+  {"from":"refund-event-emea-1001","type":"GOVERNED_BY","to":"product-cancellation-policy","evidence_tier":"deterministic","evidence":"runtime://northstar/refund-event/emea-1001@2026-08-22T08:30:00Z"},
+  {"from":"code-refund-consumer","type":"TESTED_BY","to":"test-refund-consumer","evidence_tier":"resolved","evidence":"code://northstar/refund-worker@abc123/tests/test_consumer.py#test_order_cancelled"},
+  {"from":"code-inventory-consumer","type":"TESTED_BY","to":"test-inventory-consumer","evidence_tier":"resolved","evidence":"code://northstar/inventory@def456/tests/test_events.py#test_release_reservation"},
+  {"from":"code-notification-consumer","type":"TESTED_BY","to":"test-notification-consumer","evidence_tier":"resolved","evidence":"code://northstar/notification@987fed/tests/test_consumer.py#test_send_cancelled"}
+]

@@ -1,0 +1,19 @@
+services:
+  verify:
+    build:
+      context: .
+    image: northstar-context-book:local
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  query:
+    build:
+      context: .
+    image: northstar-context-book:local
+    network_mode: none
+    read_only: true
+    profiles: [query]
+    entrypoint: ["python3", "src/northstar.py"]
+    command: ["修改 order.cancelled 会影响什么", "--role", "developer", "--graph-seed", "event-order-cancelled"]

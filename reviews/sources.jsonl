@@ -1,0 +1,10 @@
+{"source_id":"S-001","title":"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks","url":"https://arxiv.org/abs/2005.11401","type":"paper"}
+{"source_id":"S-002","title":"RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval","url":"https://arxiv.org/abs/2401.18059","type":"paper"}
+{"source_id":"S-003","title":"From Local to Global: A Graph RAG Approach to Query-Focused Summarization","url":"https://arxiv.org/abs/2404.16130","type":"paper"}
+{"source_id":"S-004","title":"Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory","url":"https://arxiv.org/abs/2504.19413","type":"paper"}
+{"source_id":"S-005","title":"Model Context Protocol Specification","url":"https://modelcontextprotocol.io/specification/","type":"specification"}
+{"source_id":"S-006","title":"BPF Type Format","url":"https://docs.kernel.org/bpf/btf.html","type":"official-documentation"}
+{"source_id":"S-007","title":"eBPF verifier","url":"https://docs.kernel.org/bpf/verifier.html","type":"official-documentation"}
+{"source_id":"S-008","title":"Tree-sitter Introduction","url":"https://tree-sitter.github.io/tree-sitter/","type":"official-documentation"}
+{"source_id":"S-009","title":"SCIP Code Intelligence Protocol","url":"https://github.com/scip-code/scip","type":"official-repository"}
+{"source_id":"S-010","title":"Linux kernel git repository","url":"https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git","type":"source-repository"}

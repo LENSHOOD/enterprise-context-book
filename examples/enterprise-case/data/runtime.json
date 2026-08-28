@@ -1,0 +1,12 @@
+{
+  "refund-queue": {
+    "tenant": "northstar",
+    "resource": "refund-queue",
+    "observed_at": "2026-08-23T10:05:00+08:00",
+    "ttl_seconds": 60,
+    "queue_depth": 842,
+    "consumer_lag_seconds": 310,
+    "provider_error_rate": 0.01,
+    "acl": ["sre", "incident_commander"]
+  }
+}

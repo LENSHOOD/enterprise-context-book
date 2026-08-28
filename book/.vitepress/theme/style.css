@@ -1,0 +1,28 @@
+:root {
+  --vp-c-brand-1: #315b4c;
+  --vp-c-brand-2: #3f725f;
+  --vp-c-brand-3: #24463a;
+  --vp-c-brand-soft: rgba(49, 91, 76, 0.14);
+  --vp-font-family-base: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --vp-font-family-mono: "SFMono-Regular", Consolas, monospace;
+}
+
+.VPHomeHero .name,
+.VPHomeHero .text {
+  letter-spacing: -0.025em;
+}
+
+.vp-doc p {
+  line-height: 1.85;
+  text-align: justify;
+}
+
+.vp-doc h2 {
+  border-top: 0;
+  margin-top: 2.4rem;
+}
+
+.vp-doc blockquote {
+  color: var(--vp-c-text-2);
+  border-left-color: var(--vp-c-brand-2);
+}

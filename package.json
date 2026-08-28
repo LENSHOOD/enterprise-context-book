@@ -1,0 +1,25 @@
+{
+  "name": "enterprise-context-book",
+  "private": true,
+  "version": "1.0.0-rc.2",
+  "homepage": "https://lenshood.github.io/enterprise-context-book/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LENSHOOD/enterprise-context-book.git"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:northstar && npm run test:linux",
+    "test:northstar": "python3 -m unittest discover -s examples/enterprise-case/tests -v",
+    "test:linux": "cd examples/linux-ebpf-case && PYTHONPATH=. python3 -m unittest discover -s tests -v && python3 -m linux_kb ingest --help",
+    "docs:dev": "vitepress dev book",
+    "docs:build": "vitepress build book",
+    "docs:preview": "vitepress preview book"
+  },
+  "devDependencies": {
+    "markdown-it-mathjax3": "4.3.2",
+    "mermaid": "11.17.2",
+    "vitepress": "1.6.4",
+    "vitepress-plugin-mermaid": "2.0.17"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "review": "enterprise-context-book-v1.0.0-rc.2",
+  "date": "2026-08-28",
+  "latest_review": "PEER_REVIEW_R6_2026-08-28.md",
+  "mode": "ultradeep-adapted",
+  "scope": ["manuscript", "citations", "northstar", "linux-ebpf", "full-linux", "vitepress", "release"],
+  "authority": ["docs/BOOK_CHARTER.md", "docs/OUTLINE.md", "docs/CASE_SPEC.md"],
+  "verdict": "not-cleared",
+  "blocking_gates": ["manuscript_length", "central_bibliography", "browser_qa", "full_kernel_machine_readable_evidence", "remote_pages_verification", "version_control_integration"]
+}

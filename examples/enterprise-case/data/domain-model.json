@@ -1,0 +1,90 @@
+{
+  "format": "northstar-domain-model/1",
+  "modelId": "northstar.enterprise-context",
+  "version": "1.0.0",
+  "status": "example",
+  "competencyQuestions": [
+    {
+      "id": "CQ-IMPACT-001",
+      "question": "退款网关 API 变化会影响哪些服务、团队和运行手册？",
+      "requiredRelations": ["CALLS", "IMPLEMENTS", "ON_CALL_FOR", "DOCUMENTED_BY"]
+    },
+    {
+      "id": "CQ-POLICY-001",
+      "question": "一次退款事件在发生时适用哪份政策？",
+      "requiredRelations": ["GOVERNED_BY"]
+    }
+  ],
+  "entityTypes": {
+    "Service": {"identity": ["service_catalog_id"], "aliases": ["name", "runtime_label"]},
+    "Repository": {"identity": ["canonical_git_url"]},
+    "API": {"identity": ["spec_uri", "operation_id", "version"]},
+    "Team": {"identity": ["org_team_id"]},
+    "Runbook": {"identity": ["source_uri"]},
+    "Policy": {"identity": ["policy_id", "version"], "temporal": true},
+    "RefundEvent": {"identity": ["event_id"], "temporal": true},
+    "EventSchema": {"identity": ["schema_uri", "version"], "temporal": true},
+    "CodeSymbol": {"identity": ["repository", "commit", "symbol"]},
+    "Test": {"identity": ["repository", "commit", "test_id"]},
+    "ADR": {"identity": ["adr_id", "version"], "temporal": true},
+    "Incident": {"identity": ["incident_id"]}
+  },
+  "relations": {
+    "CALLS": {
+      "from": "Service",
+      "to": "API",
+      "cardinality": "many_to_many",
+      "allowedEvidence": ["deterministic", "resolved", "observed"],
+      "temporal": true,
+      "inverse": "CALLED_BY"
+    },
+    "IMPLEMENTS": {
+      "from": "Repository",
+      "to": "API",
+      "cardinality": "many_to_many",
+      "allowedEvidence": ["deterministic", "asserted"]
+    },
+    "ON_CALL_FOR": {
+      "from": "Team",
+      "to": "Service",
+      "cardinality": "many_to_many",
+      "allowedEvidence": ["deterministic", "asserted"],
+      "temporal": true
+    },
+    "DOCUMENTED_BY": {
+      "from": "Service",
+      "to": "Runbook",
+      "cardinality": "many_to_many",
+      "allowedEvidence": ["resolved", "asserted"]
+    },
+    "GOVERNED_BY": {
+      "from": "RefundEvent",
+      "to": "Policy",
+      "cardinality": "many_to_one_at_event_time",
+      "allowedEvidence": ["deterministic", "asserted"],
+      "temporal": true,
+      "constraints": [
+        "policy.region contains event.region",
+        "policy.valid_from <= event.occurred_at < policy.valid_to"
+      ]
+    },
+    "CONSUMED_BY": {
+      "from": "EventSchema", "to": "CodeSymbol", "cardinality": "one_to_many",
+      "allowedEvidence": ["deterministic", "resolved"], "temporal": true
+    },
+    "AFFECTED": {
+      "from": "Incident", "to": "CodeSymbol", "cardinality": "many_to_many",
+      "allowedEvidence": ["asserted", "observed"], "temporal": true
+    },
+    "TESTED_BY": {
+      "from": "CodeSymbol", "to": "Test", "cardinality": "one_to_many",
+      "allowedEvidence": ["deterministic", "resolved"]
+    }
+  },
+  "sourceMappings": [
+    {"source": "service_catalog", "produces": ["Service", "ON_CALL_FOR"]},
+    {"source": "git_and_code_index", "produces": ["Repository", "IMPLEMENTS", "CALLS"]},
+    {"source": "document_system", "produces": ["Runbook", "Policy", "DOCUMENTED_BY"]},
+    {"source": "refund_event_stream", "produces": ["RefundEvent", "GOVERNED_BY"]}
+  ]
+}
