@@ -1,16 +1,16 @@
 {
-  "review": "enterprise-context-book-v1.0.0-rc.2",
+  "review": "enterprise-context-book-v1.0.0-rc.3",
   "date": "2026-08-30",
-  "latest_review": "PEER_REVIEW_R7_COHERENCE_2026-08-30.md",
+  "latest_review": "PEER_REVIEW_R8_EA_2026-08-30.md",
   "mode": "ultradeep-adapted",
-  "scope": ["manuscript", "coherence", "citations", "northstar", "linux-ebpf", "full-linux", "vitepress", "release"],
+  "scope": ["manuscript", "coherence", "enterprise-architecture", "citations", "northstar", "linux-ebpf", "full-linux", "vitepress", "release"],
   "authority": ["docs/BOOK_CHARTER.md", "docs/OUTLINE.md", "docs/CASE_SPEC.md"],
   "publication": {
     "repository": "https://github.com/LENSHOOD/enterprise-context-book",
     "site": "https://lenshood.github.io/enterprise-context-book/",
     "initial_commit": "509056ef04428fe9510b1af71a164c6d520aedea",
-    "pages_run": "https://github.com/LENSHOOD/enterprise-context-book/actions/runs/33179598875",
-    "tag": "v1.0.0-rc.2"
+    "previous_pages_run": "https://github.com/LENSHOOD/enterprise-context-book/actions/runs/33179598875",
+    "tag": "v1.0.0-rc.3"
   },
   "verdict": "not-cleared",
   "blocking_gates": ["manuscript_length", "central_bibliography", "full_kernel_machine_readable_evidence"]

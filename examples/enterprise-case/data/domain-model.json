@@ -34,7 +34,7 @@
       "from": "Service",
       "to": "API",
       "cardinality": "many_to_many",
-      "allowedEvidence": ["deterministic", "resolved", "observed"],
+      "allowedEvidence": ["deterministic", "resolved", "asserted", "observed"],
       "temporal": true,
       "inverse": "CALLED_BY"
     },
@@ -84,7 +84,10 @@
   "sourceMappings": [
     {"source": "service_catalog", "produces": ["Service", "ON_CALL_FOR"]},
     {"source": "git_and_code_index", "produces": ["Repository", "IMPLEMENTS", "CALLS"]},
+    {"source": "api_registry", "produces": ["API"]},
     {"source": "document_system", "produces": ["Runbook", "Policy", "DOCUMENTED_BY"]},
-    {"source": "refund_event_stream", "produces": ["RefundEvent", "GOVERNED_BY"]}
+    {"source": "refund_event_stream", "produces": ["RefundEvent", "GOVERNED_BY"]},
+    {"source": "enterprise_architecture_repository", "produces": ["API", "CALLS"]},
+    {"source": "runtime_tracing", "produces": ["API", "CALLS"]}
   ]
 }

@@ -1,0 +1,29 @@
+{
+  "format": "northstar-architecture-claims/1",
+  "snapshot": "northstar-ea-2026-08-20",
+  "source": {
+    "uri": "knowledge://northstar/enterprise-architecture/application-view@2026-08-20",
+    "revision": "2026-08-20",
+    "evidence_tier": "asserted",
+    "state": "current-declared",
+    "valid_from": "2026-08-20T00:00:00Z",
+    "observed_at": "2026-08-27T00:00:00Z"
+  },
+  "scope": {
+    "relation_types": ["CALLS"],
+    "from_ids": ["service-refund-worker"],
+    "description": "退款服务在当前应用架构视图中声明的 API 调用关系"
+  },
+  "claims": [
+    {
+      "from": "service-refund-worker",
+      "type": "CALLS",
+      "to": "api-create-refund"
+    },
+    {
+      "from": "service-refund-worker",
+      "type": "CALLS",
+      "to": "api-legacy-refund"
+    }
+  ]
+}

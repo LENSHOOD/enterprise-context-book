@@ -2,7 +2,7 @@
 
 本仓库包含书稿、Northstar Commerce 企业上下文案例和 Linux eBPF 代码知识库案例。
 
-当前公开版本是 `v1.0.0-rc.2` 发布候选，不代表正式版已经通过全部发布门。正文包含 18 章及完整 Linux 内核番外，位于 `book/`；可运行案例位于 `examples/`。已知缺口与验收状态见[发布审计](docs/RELEASE_AUDIT.md)。
+当前公开版本是 `v1.0.0-rc.3` 发布候选，不代表正式版已经通过全部发布门。正文包含 18 章及完整 Linux 内核番外，位于 `book/`；可运行案例位于 `examples/`。已知缺口与验收状态见[发布审计](docs/RELEASE_AUDIT.md)。
 
 - [在线阅读](https://lenshood.github.io/enterprise-context-book/)
 - [项目文档](docs/README.md)
