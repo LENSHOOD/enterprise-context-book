@@ -1,5 +1,7 @@
 # 第 16 章 加入 Wiki、关系图与记忆
 
+> 本章要回答：如何让 Wiki、关系图与任务记忆共享同一套来源、权限和失效语义？
+
 可信检索能找到政策、代码和 Runbook，却仍要求调用者自己重建系统全貌。Northstar 的下一阶段增加三种派生能力：Wiki 把重复理解编译成页面，关系图连接跨仓与跨来源对象，任务记忆让事故调查跨会话延续。三者共同使用第 11 章的对象信封和血缘，不建立新的事实孤岛。
 
 本章仍遵循一个原则：先确定任务与可验证关系，再生成页面和图。批量生成数百篇摘要很容易，证明它们在变更后仍然正确、权限一致并能回到源码则困难得多。
@@ -8,7 +10,7 @@
 
 Northstar 从无需模型推断的来源建图。服务目录给出服务与团队，OpenAPI 给出服务与接口，事件 Schema 给出事件与版本，代码解析给出仓库、文件、符号和显式调用，测试清单给出被测对象，Runbook frontmatter 给出适用系统。
 
-最小节点类型包括 `BusinessCapability`、`Service`、`Repository`、`Symbol`、`API`、`Event`、`Runbook`、`Test`、`Team` 和 `Incident`。最小关系包括 `OWNS`、`IMPLEMENTS`、`CALLS`、`PRODUCES`、`CONSUMES`、`TESTED_BY`、`DOCUMENTED_BY` 和 `AFFECTED_IN`。
+参考实现的最小节点类型与 `data/domain-model.json` 保持一致：`Service`、`Repository`、`API`、`Team`、`Runbook`、`Policy`、`RefundEvent`、`EventSchema`、`CodeSymbol`、`Test`、`ADR` 和 `Incident`。最小关系同样以该文件为唯一规范词表：`CALLS`、`IMPLEMENTS`、`ON_CALL_FOR`、`DOCUMENTED_BY`、`GOVERNED_BY`、`CONSUMED_BY`、`AFFECTED` 和 `TESTED_BY`。
 
 边记录来源和证据等级。例如 OpenAPI operation 到处理函数的映射若由明确注解解析，可标记 `resolved`；仅凭相同名称连接则是 `heuristic`。模型从事故叙述中抽取“部署可能导致积压”只能标为 `inferred`，直到部署记录和指标验证。
 
@@ -109,12 +111,28 @@ Golden Question “修改 `order.cancelled` 会影响什么”首先由 BM25 或
 
 权限矩阵再次运行：客服只能得到取消流程和政策，不得到仓库图；开发者得到代码影响；负责人还看到相关事故任务。图和 Wiki 不能绕过第 15 章的对象过滤。
 
+## 16.9 用运行证据验证企业架构声明
+
+企业架构图进入知识库后，不应被当成永远正确的现状，也不应因为与代码不同就被丢弃。Northstar 把应用架构视图中的依赖保存为 `asserted` 声明，再与代码索引的 `resolved` 边和运行追踪的 `observed` 边按同一逻辑 ID 比较。配套数据 `data/architecture-claims.json` 和 `NorthstarPlatform.architecture_consistency()` 实现了最小闭环。
+
+```bash
+cd examples/enterprise-case
+python3 src/northstar.py --architecture-consistency --role developer
+```
+
+比较结果分为三类：声明且有实现或运行证据，说明当前证据支持该架构关系；声明但没有当前证据，表示待核验的过期、未启用或未覆盖路径，不能仅凭“未观察到”判定为死架构；有代码或运行证据却没有声明，则是需要架构负责人确认的影子依赖候选。每一类都保留声明来源与观察证据，而不是压成一个真假值。
+
+教学 fixture 中，`refund-worker` 对 `create_refund` 的调用同时存在架构声明和代码解析证据；对 `legacy_refund` 的声明没有当前实现或追踪证据；运行追踪还观察到未被架构视图声明的 `risk_check` 调用。测试验证三类集合，并验证无权查看相关服务与 API 的角色得不到差异结果。
+
+这使企业上下文平台成为 EA 的运行证据反馈通道，而不是 EA 的替代品。架构负责人仍决定目标状态与处置方式；平台负责持续展示“声明、实现、观察”之间的差异、时间和证据覆盖。它也说明了为何第 8 章的证据等级不能退化为单一置信分数：三类边描述的是不同命题。
+
 ## 本章小结
 
-Northstar 先以服务目录、Schema、源码和测试建立确定性图骨架，再让模型推断补充语义。代码仓作为子图通过事件和 API 连接，分层 Wiki 则把图与来源编译成不同安全域的阅读视图。变更从叶子沿血缘增量失效，任务记忆保存事故工作但不自动晋升为组织知识。三种能力的共同价值，是让检索结果能够在抽象层之间导航并持续更新，而不是生成更多页面。
+Northstar 先以服务目录、Schema、源码和测试建立确定性图骨架，再让模型推断补充语义。代码仓作为子图通过事件和 API 连接，分层 Wiki 则把图与来源编译成不同安全域的阅读视图。变更从叶子沿血缘增量失效，任务记忆保存事故工作但不自动晋升为组织知识。企业架构声明与代码、运行证据的持续比较进一步把规范资产接入反馈闭环。共同价值是让检索结果能够在抽象层之间导航、验证并持续更新，而不是生成更多页面。
 
 ## 延伸阅读
 
 - Tree-sitter, [Documentation](https://tree-sitter.github.io/tree-sitter/)。
 - SCIP contributors, [SCIP](https://github.com/scip-code/scip)。
 - W3C, [PROV-O](https://www.w3.org/TR/prov-o/)。
+- Thoughtworks, [现代企业架构框架（MEAF）V4 学习镜像](https://web3d.github.io/meaf-book/)；镜像标注版权归 Thoughtworks。

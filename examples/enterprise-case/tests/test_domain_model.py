@@ -13,6 +13,9 @@ class DomainModelTest(unittest.TestCase):
         cls.model = json.loads((ROOT / "data" / "domain-model.json").read_text())
         cls.documents = json.loads((ROOT / "data" / "knowledge.json").read_text())
         cls.edges = json.loads((ROOT / "data" / "relations.json").read_text())
+        cls.architecture_claims = json.loads(
+            (ROOT / "data" / "architecture-claims.json").read_text()
+        )
 
     def test_competency_questions_reference_declared_relations(self):
         declared = set(self.model["relations"])
@@ -46,6 +49,26 @@ class DomainModelTest(unittest.TestCase):
         for question in self.model["competencyQuestions"]:
             with self.subTest(question=question["id"]):
                 self.assertTrue(set(question["requiredRelations"]).issubset(instantiated))
+
+    def test_architecture_claims_conform_to_relation_contract(self):
+        documents = {document["id"]: document for document in self.documents}
+        evidence_tier = self.architecture_claims["source"]["evidence_tier"]
+        for claim in self.architecture_claims["claims"]:
+            with self.subTest(claim=claim):
+                relation = self.model["relations"][claim["type"]]
+                self.assertEqual(relation["from"], documents[claim["from"]]["entity_type"])
+                self.assertEqual(relation["to"], documents[claim["to"]]["entity_type"])
+                self.assertIn(evidence_tier, relation["allowedEvidence"])
+
+    def test_ea_consistency_sources_map_api_entities_and_calls(self):
+        mappings = {
+            mapping["source"]: set(mapping["produces"])
+            for mapping in self.model["sourceMappings"]
+        }
+        self.assertIn("API", mappings["api_registry"])
+        for source in ("enterprise_architecture_repository", "runtime_tracing"):
+            with self.subTest(source=source):
+                self.assertTrue({"API", "CALLS"}.issubset(mappings[source]))
 
     def test_every_document_has_governance_envelope(self):
         required = {"version_id", "source", "time", "lineage", "content_hash", "entity_type"}

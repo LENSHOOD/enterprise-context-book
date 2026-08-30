@@ -3,6 +3,12 @@
 ## A. 核心术语
 
 **企业上下文（Enterprise Context）**：智能体针对当前身份、时间和任务正确理解与行动所需的信息和约束；首次系统定义见第 1 章。  
+**企业架构（Enterprise Architecture，EA）**：使企业的业务、组织、应用、数据和技术围绕目标形成可描述、可治理关系的实践；本书把其资产作为企业上下文来源，而不展开完整 EA 方法论；见第 2、8 章。<br>
+**元模型（Metamodel）**：定义某类模型允许包含的概念要素及关系的模型；企业架构和知识建模都可用它约束描述语言；见第 8 章。<br>
+**视角/视图（Viewpoint/View）**：视角规定如何组织某类关注点，视图是据此形成的架构表达；见第 6 章。<br>
+**领域驱动设计（Domain-Driven Design，DDD）**：围绕领域模型和共享语言组织复杂软件设计的实践；本书主要借用其限界上下文、统一语言和领域事件；见第 8 章。<br>
+**限界上下文（Bounded Context）**：某套模型和词义保持一致的明确边界；不同边界可保留同名但不同义的概念；见第 8 章。<br>
+**Northstar Commerce**：本书虚构的在线零售企业与贯穿案例；首次出现于第 1 章，第 14—17 章给出可运行的教学参考实现。<br>
 **知识库（Knowledge Base）**：保存可复用事实、规则、解释和关系的基础设施；见第 3 章。  
 **原始来源（Raw Source）**：未经知识系统改写的权威材料；见第 3 章。  
 **派生知识（Derived Knowledge）**：从来源生成、可失效和重建的块、向量、关系、摘要与 Wiki；见第 3 章。  
@@ -32,6 +38,9 @@
 **规范实体（Canonical Entity）**：多个来源别名解析后共同指向的稳定对象；见第 8 章。  
 **证据等级（Evidence Tier）**：关系来源的五级枚举：`deterministic`、`resolved`、`asserted`、`heuristic`、`inferred`；运行观察作为独立的 `observed` 等级保留，见第 8 章。  
 **ArtifactFS**：按仓库和提交提供不可变源码 blob、路径、行号与内容散列的版本化工件层抽象；见第 5、18 章。  
+**LSP（Language Server Protocol）**：编辑器与语言分析器之间的标准协议，可提供定义跳转、引用查找、类型信息和诊断；见第 5、18 章。<br>
+**ADR（Architecture Decision Record）**：记录架构决策背景、选择与后果的版本化文档；首次展开见第 1 章。<br>
+**Runbook**：供运维或业务处置使用的运行手册，包含症状、检查、动作和验证；首次展开见第 1 章。<br>
 **知识候选（Knowledge Candidate）**：尚未通过审核、不能直接晋升为组织知识的经验或声明；见第 9 章。  
 **任务记忆主体（Task-memory Subject）**：限定记忆归属、读写权限和生命周期的任务标识；见第 9、17 章。  
 **Tombstone**：表示来源或对象已撤销、用于驱动所有派生投影删除传播的标记；见第 11 章。
@@ -48,6 +57,11 @@
 - 代码 Wiki：[CodeWiki](https://aclanthology.org/2026.findings-acl.288/)
 - 代码语义索引：[SCIP](https://github.com/scip-code/scip)
 - Agent 集成：[MCP](https://modelcontextprotocol.io/specification/)
+- 企业架构历史：[Zachman, 1987](https://doi.org/10.1147/sj.263.0276)
+- 架构描述标准：[ISO/IEC/IEEE 42010:2022](https://www.iso.org/standard/74393.html)
+- 企业架构方法：[TOGAF](https://www.opengroup.org/togaf)
+- 现代企业架构实践：[MEAF V4 学习镜像](https://web3d.github.io/meaf-book/)（镜像标注版权归 Thoughtworks）
+- 领域建模：[Eric Evans, Domain-Driven Design](https://www.pearson.com/en-gb/subject-catalog/p/domain-driven-design-tackling-complexity-in-the-heart-of-software/P200000009375/9780321125217)
 
 ## C. 技术替换矩阵
 

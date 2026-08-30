@@ -80,11 +80,18 @@ class NorthstarPlatform:
     def __init__(self, data_dir: Path = ROOT / "data") -> None:
         self.documents = json.loads((data_dir / "knowledge.json").read_text(encoding="utf-8"))
         self.edges = json.loads((data_dir / "relations.json").read_text(encoding="utf-8"))
+        self.architecture_claims = json.loads(
+            (data_dir / "architecture-claims.json").read_text(encoding="utf-8")
+        )
         self.runtime = json.loads((data_dir / "runtime.json").read_text(encoding="utf-8"))
         self.by_id = {doc["id"]: doc for doc in self.documents}
         self.memory = TaskMemory()
         canonical = json.dumps(
-            {"documents": self.documents, "edges": self.edges},
+            {
+                "documents": self.documents,
+                "edges": self.edges,
+                "architecture_claims": self.architecture_claims,
+            },
             ensure_ascii=False, sort_keys=True, separators=(",", ":"),
         ).encode()
         self.manifest = f"northstar-{hashlib.sha256(canonical).hexdigest()[:12]}"
@@ -218,6 +225,73 @@ class NorthstarPlatform:
                     visited.add(edge["to"])
                     queue.append((edge["to"], depth + 1))
         return found
+
+    def architecture_consistency(self, principal: Principal) -> dict[str, list[dict]]:
+        """Compare declared EA relations with implementation and runtime evidence.
+
+        Absence of evidence is reported for review; it is not treated as proof that a
+        declared path is dead. ACL filtering happens before either side is compared.
+        """
+        visible = {doc["id"] for doc in self.visible_documents(principal)}
+        scope = self.architecture_claims["scope"]
+        relation_types = set(scope["relation_types"])
+        from_ids = set(scope.get("from_ids", []))
+        to_ids = set(scope.get("to_ids", []))
+
+        def in_scope(item: dict) -> bool:
+            return (
+                item["type"] in relation_types
+                and (not from_ids or item["from"] in from_ids)
+                and (not to_ids or item["to"] in to_ids)
+            )
+
+        claims = {
+            (claim["from"], claim["type"], claim["to"]): claim
+            for claim in self.architecture_claims["claims"]
+            if in_scope(claim)
+            and claim["from"] in visible
+            and claim["to"] in visible
+        }
+        evidence: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+        for edge in self.edges:
+            key = (edge["from"], edge["type"], edge["to"])
+            if (
+                in_scope(edge)
+                and edge["evidence_tier"] in {"deterministic", "resolved", "observed"}
+                and edge["from"] in visible
+                and edge["to"] in visible
+            ):
+                evidence[key].append(edge)
+
+        declared = set(claims)
+        evidenced = set(evidence)
+        source = self.architecture_claims["source"]
+
+        def claim_record(key: tuple[str, str, str]) -> dict:
+            return {**claims[key], "claim_source": source}
+
+        def evidence_record(key: tuple[str, str, str]) -> dict:
+            return {
+                "from": key[0],
+                "type": key[1],
+                "to": key[2],
+                "evidence": sorted(
+                    evidence[key], key=lambda edge: (edge["evidence_tier"], edge["evidence"])
+                ),
+            }
+
+        return {
+            "declared_and_evidenced": [
+                {**claim_record(key), "evidence": evidence_record(key)["evidence"]}
+                for key in sorted(declared & evidenced)
+            ],
+            "declared_not_evidenced": [
+                claim_record(key) for key in sorted(declared - evidenced)
+            ],
+            "evidenced_not_declared": [
+                evidence_record(key) for key in sorted(evidenced - declared)
+            ],
+        }
 
     def build_wiki(self, principal: Principal) -> list[dict]:
         """Compile deterministic pages; inputs double as lineage."""
@@ -385,17 +459,22 @@ class NorthstarPlatform:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("question")
+    parser.add_argument("question", nargs="?", default="")
     parser.add_argument("--role", default="developer")
     parser.add_argument("--task", default="demo")
     parser.add_argument("--graph-seed")
     parser.add_argument("--runtime-resource")
+    parser.add_argument("--architecture-consistency", action="store_true")
     args = parser.parse_args()
     platform = NorthstarPlatform()
-    result = platform.context(
-        args.question, Principal("demo-user", args.role), args.task,
-        graph_seed=args.graph_seed, runtime_resource=args.runtime_resource,
-    )
+    principal = Principal("demo-user", args.role)
+    if args.architecture_consistency:
+        result = platform.architecture_consistency(principal)
+    else:
+        result = platform.context(
+            args.question, principal, args.task,
+            graph_seed=args.graph_seed, runtime_resource=args.runtime_resource,
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
