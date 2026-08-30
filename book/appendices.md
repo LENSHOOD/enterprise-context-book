@@ -3,6 +3,7 @@
 ## A. 核心术语
 
 **企业上下文（Enterprise Context）**：智能体针对当前身份、时间和任务正确理解与行动所需的信息和约束；首次系统定义见第 1 章。  
+**Northstar Commerce**：本书虚构的在线零售企业与贯穿案例；首次出现于第 1 章，第 14—17 章给出可运行的教学参考实现。<br>
 **知识库（Knowledge Base）**：保存可复用事实、规则、解释和关系的基础设施；见第 3 章。  
 **原始来源（Raw Source）**：未经知识系统改写的权威材料；见第 3 章。  
 **派生知识（Derived Knowledge）**：从来源生成、可失效和重建的块、向量、关系、摘要与 Wiki；见第 3 章。  
@@ -32,6 +33,9 @@
 **规范实体（Canonical Entity）**：多个来源别名解析后共同指向的稳定对象；见第 8 章。  
 **证据等级（Evidence Tier）**：关系来源的五级枚举：`deterministic`、`resolved`、`asserted`、`heuristic`、`inferred`；运行观察作为独立的 `observed` 等级保留，见第 8 章。  
 **ArtifactFS**：按仓库和提交提供不可变源码 blob、路径、行号与内容散列的版本化工件层抽象；见第 5、18 章。  
+**LSP（Language Server Protocol）**：编辑器与语言分析器之间的标准协议，可提供定义跳转、引用查找、类型信息和诊断；见第 5、18 章。<br>
+**ADR（Architecture Decision Record）**：记录架构决策背景、选择与后果的版本化文档；首次展开见第 1 章。<br>
+**Runbook**：供运维或业务处置使用的运行手册，包含症状、检查、动作和验证；首次展开见第 1 章。<br>
 **知识候选（Knowledge Candidate）**：尚未通过审核、不能直接晋升为组织知识的经验或声明；见第 9 章。  
 **任务记忆主体（Task-memory Subject）**：限定记忆归属、读写权限和生命周期的任务标识；见第 9、17 章。  
 **Tombstone**：表示来源或对象已撤销、用于驱动所有派生投影删除传播的标记；见第 11 章。

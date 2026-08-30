@@ -1,5 +1,7 @@
 # 第 16 章 加入 Wiki、关系图与记忆
 
+> 本章要回答：如何让 Wiki、关系图与任务记忆共享同一套来源、权限和失效语义？
+
 可信检索能找到政策、代码和 Runbook，却仍要求调用者自己重建系统全貌。Northstar 的下一阶段增加三种派生能力：Wiki 把重复理解编译成页面，关系图连接跨仓与跨来源对象，任务记忆让事故调查跨会话延续。三者共同使用第 11 章的对象信封和血缘，不建立新的事实孤岛。
 
 本章仍遵循一个原则：先确定任务与可验证关系，再生成页面和图。批量生成数百篇摘要很容易，证明它们在变更后仍然正确、权限一致并能回到源码则困难得多。
@@ -8,7 +10,7 @@
 
 Northstar 从无需模型推断的来源建图。服务目录给出服务与团队，OpenAPI 给出服务与接口，事件 Schema 给出事件与版本，代码解析给出仓库、文件、符号和显式调用，测试清单给出被测对象，Runbook frontmatter 给出适用系统。
 
-最小节点类型包括 `BusinessCapability`、`Service`、`Repository`、`Symbol`、`API`、`Event`、`Runbook`、`Test`、`Team` 和 `Incident`。最小关系包括 `OWNS`、`IMPLEMENTS`、`CALLS`、`PRODUCES`、`CONSUMES`、`TESTED_BY`、`DOCUMENTED_BY` 和 `AFFECTED_IN`。
+参考实现的最小节点类型与 `data/domain-model.json` 保持一致：`Service`、`Repository`、`API`、`Team`、`Runbook`、`Policy`、`RefundEvent`、`EventSchema`、`CodeSymbol`、`Test`、`ADR` 和 `Incident`。最小关系同样以该文件为唯一规范词表：`CALLS`、`IMPLEMENTS`、`ON_CALL_FOR`、`DOCUMENTED_BY`、`GOVERNED_BY`、`CONSUMED_BY`、`AFFECTED` 和 `TESTED_BY`。
 
 边记录来源和证据等级。例如 OpenAPI operation 到处理函数的映射若由明确注解解析，可标记 `resolved`；仅凭相同名称连接则是 `heuristic`。模型从事故叙述中抽取“部署可能导致积压”只能标为 `inferred`，直到部署记录和指标验证。
 

@@ -1,9 +1,9 @@
 {
   "review": "enterprise-context-book-v1.0.0-rc.2",
-  "date": "2026-08-28",
-  "latest_review": "PEER_REVIEW_R6_2026-08-28.md",
+  "date": "2026-08-30",
+  "latest_review": "PEER_REVIEW_R7_COHERENCE_2026-08-30.md",
   "mode": "ultradeep-adapted",
-  "scope": ["manuscript", "citations", "northstar", "linux-ebpf", "full-linux", "vitepress", "release"],
+  "scope": ["manuscript", "coherence", "citations", "northstar", "linux-ebpf", "full-linux", "vitepress", "release"],
   "authority": ["docs/BOOK_CHARTER.md", "docs/OUTLINE.md", "docs/CASE_SPEC.md"],
   "publication": {
     "repository": "https://github.com/LENSHOOD/enterprise-context-book",

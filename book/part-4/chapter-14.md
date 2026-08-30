@@ -1,5 +1,7 @@
 # 第 14 章 案例企业与需求设计
 
+> 本章要回答：如何把真实工作任务转化为可运行、可验收的企业上下文案例？
+
 这一章开始构建 Northstar Commerce 企业上下文系统。案例不是对某个商业产品的演示，而是一条可以替换组件的参考实现：先用小型、确定的数据证明对象、权限、版本、检索与评测契约，再逐步加入向量、图、Wiki、记忆和工具。
 
 Northstar 是虚构在线零售企业，避免公开案例依赖真实公司的机密数据。它仍保留生产问题的主要复杂性：多个服务和代码仓、地区政策、历史架构决策、运行手册、事故、角色权限、实时状态和高风险动作。
@@ -70,6 +72,8 @@ URI 不是要求所有后端理解自定义协议，而是案例内部的规范�
 
 每条金标准样本保存结构化字段：
 
+以下是生产题集的完整字段设计。配套教学题集 `data/golden-questions.json`（亦见附录 D.1）只实现可执行的行为断言，并不实现完整证据契约：`query` 对应 `question`，`principal.role` 对应 `role`；`expected_ids` 只断言结果中应出现哪些对象 ID，不能等同于 `required_evidence`。负结果、缺失资源和动作约束分别由 `forbidden_ids`、`expected_missing`、`forbidden_tools` 或 `expected_tool` 表示。教学子集没有独立的 `snapshot`、规范证据 URI 或标准答案文本；历史时间条件目前保留在题目文本及对应 fixture 中。
+
 ```json
 {
   "id": "GQ-IMPACT-001",
@@ -82,7 +86,7 @@ URI 不是要求所有后端理解自定义协议，而是案例内部的规范�
     "code://northstar/notification@c1/consumer.py#send_cancelled"
   ],
   "forbidden_evidence": [],
-  "required_relations": ["CONSUMES", "TESTED_BY"],
+  "required_relations": ["CONSUMED_BY", "TESTED_BY"],
   "expected_action": "none"
 }
 ```
