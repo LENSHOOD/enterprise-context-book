@@ -1,134 +1,131 @@
-# 第 16 章 加入 Wiki、关系图与记忆
+# 第 16 章 C3：让对象形成图、Wiki 与可持续经验
 
-> 本章要回答：如何让 Wiki、关系图与任务记忆共享同一套来源、权限和失效语义？
+> 本章要回答：在已经可信的对象上，如何加入关系、解释和记忆，而不制造新的事实孤岛？
 
-可信检索能找到政策、代码和 Runbook，却仍要求调用者自己重建系统全貌。Northstar 的下一阶段增加三种派生能力：Wiki 把重复理解编译成页面，关系图连接跨仓与跨来源对象，任务记忆让事故调查跨会话延续。三者共同使用第 11 章的对象信封和血缘，不建立新的事实孤岛。
+C1 和 C2 的检索结果仍然是一组候选对象。开发者看到 `order.cancelled`、三个代码消费者和三个测试时，仍要自己拼出“修改事件会影响什么”。C3 的目标是把这种重复拼接变成可导航、可核验、可失效的派生视图，同时保证图、Wiki 和任务记忆都不绕过已经建立的权限与版本边界。
 
-本章仍遵循一个原则：先确定任务与可验证关系，再生成页面和图。批量生成数百篇摘要很容易，证明它们在变更后仍然正确、权限一致并能回到源码则困难得多。
+## 16.1 C3 的输入和输出
 
-## 16.1 建立确定性骨架
-
-Northstar 从无需模型推断的来源建图。服务目录给出服务与团队，OpenAPI 给出服务与接口，事件 Schema 给出事件与版本，代码解析给出仓库、文件、符号和显式调用，测试清单给出被测对象，Runbook frontmatter 给出适用系统。
-
-参考实现的最小节点类型与 `data/domain-model.json` 保持一致：`Service`、`Repository`、`API`、`Team`、`Runbook`、`Policy`、`RefundEvent`、`EventSchema`、`CodeSymbol`、`Test`、`ADR` 和 `Incident`。最小关系同样以该文件为唯一规范词表：`CALLS`、`IMPLEMENTS`、`ON_CALL_FOR`、`DOCUMENTED_BY`、`GOVERNED_BY`、`CONSUMED_BY`、`AFFECTED` 和 `TESTED_BY`。
-
-边记录来源和证据等级。例如 OpenAPI operation 到处理函数的映射若由明确注解解析，可标记 `resolved`；仅凭相同名称连接则是 `heuristic`。模型从事故叙述中抽取“部署可能导致积压”只能标为 `inferred`，直到部署记录和指标验证。
-
-一个简化边对象如下：
-
-```json
-{
-  "from": "event:order.cancelled@v2",
-  "type": "CONSUMED_BY",
-  "to": "symbol:payment#handle_order_cancelled",
-  "evidence": "code://northstar/payment@c1/handlers.py#handle_order_cancelled",
-  "evidence_tier": "resolved",
-  "valid_from": "2026-07-11T00:00:00Z"
-}
-```
-
-图构建测试验证外键、唯一实体、允许边类型和证据 URI。任何无法解析的目标保留为 unresolved report，而不是悄悄创建同名节点。
-
-## 16.2 代码仓是子图，不是文档文件夹
-
-每个逻辑仓形成一个子图：仓库包含文件，文件定义符号，符号调用符号、实现 API 或消费事件，测试覆盖符号。仓间通过事件、API、包和部署产物连接。这个结构允许 `order.cancelled` 从 Schema 节点同时扩展到 Payment、Inventory 和 Notification，而不依赖三份文档使用相同措辞。
-
-Tree-sitter 用于恢复语法结构和候选调用，语言级索引或编译器信息用于精确符号关系。案例源码很小，可以用 Python AST 或规则解析；书中保持接口为 `nodes.jsonl` 与 `edges.jsonl`，使解析器可替换。
-
-ArtifactFS 保存固定提交的源码，图只保存引用和结构属性。查询最后总能回到 `code://...@commit/path#symbol`，而不是把图数据库中的摘要当作代码事实。仓库更新时创建新符号版本，未变化对象可复用内容散列。
-
-## 16.3 从叶子编译分层 Wiki
-
-Northstar 定义四层页面：业务流程、系统、仓库和模块/符号。业务流程页解释订单取消的规则与参与系统；系统页解释 Payment Service 的职责、接口、依赖和运行方式；仓库页给出构建、目录、入口和测试；模块页解释关键实现并链接源码。
-
-页面生成分两阶段。第一阶段使用确定性模板填入实体、关系、所有者和引用；第二阶段可选用模型把证据综合成叙述。没有模型时，模板页面仍完整可导航。模型输出必须通过结构解析和声明引用检查。
-
-页面清单保存：
-
-```yaml
-page_id: wiki:system:payment
-schema: system-page@1
-inputs:
-  - service:payment@v1
-  - repo:payment@c1
-  - runbook:refund-backlog@v2
-generator: template@1
-review: approved
-freshness: ready
-acl_policy_id: acl:engineering
-```
-
-客服域另行生成不含源码与内部 Runbook 的业务页面。平台不会先生成工程页面再删字段，因为剩余叙述可能泄露内部结构。页面安全域属于生成输入。
-
-## 16.4 页面内容如何保持可核验
-
-模板中的事实字段直接绑定对象或边。模型生成的每个段落则返回声明列表与证据 ID。Lint 检查引用可解析、输入版本属于同一 Manifest、关键字段非空、没有越权来源和孤立声明。
-
-若页面写“所有订单取消都会触发退款”，政策却说明未支付订单不触发，声明验证应失败或把例外补入上下文。摘要目标不是最短，而是在目标抽象层保留决定性条件。
-
-页面审核状态分为 `draft`、`reviewed` 和 `approved`。低风险代码导览可以自动发布为 draft，高风险处置步骤只有 approved 才能作为行动证据。检索结果显示状态，Agent 规划时按风险过滤。
-
-## 16.5 增量失效
-
-来源 diff 首先更新叶子对象和确定边，再通过依赖图传播。`order.cancelled` Schema 新增字段时，事件节点创建新版本，消费者边进入待验证，对应符号与测试页面标 stale，三个仓库页和业务流程页进入重建队列。
-
-传播规则按变更类型设置。注释变化可能只影响符号摘要；接口签名变化影响调用者、测试和系统页；ACL 变化立即撤销所有派生页面；模型或提示升级只使相应生成物重建，不改变确定图。
-
-流水线把连续提交合并到同一目标快照，避免每次提交重复生成上层页面。失败页面保持上一已发布版本，但响应标注其覆盖快照；若来源撤销或安全变化，则不能继续服务旧页面。
-
-## 16.6 为退款积压建立任务记忆
-
-事故任务以 `incident_id` 作为记忆主体。状态对象包括目标、负责人、时间线、已检查指标、排除假设、证据、已执行只读查询、待确认动作和下一步。每次更新使用版本和乐观并发，防止两个 Agent 覆盖彼此进度。
-
-一条任务事件可以是：
-
-```json
-{
-  "incident_id": "INC-1042",
-  "type": "hypothesis_rejected",
-  "statement": "支付网关错误率不是主要原因",
-  "evidence": ["runtime://northstar/payment/error-rate@2026-08-23T10:05Z"],
-  "actor": "user:alice",
-  "created_at": "2026-08-23T10:06Z"
-}
-```
-
-任务恢复时，系统返回当前摘要与未完成步骤，而不是重放全部聊天。实时指标过期后只保留历史观察，不作为当前状态。用户纠错追加替代关系，原错误仍保留用于审计但停止召回。
-
-## 16.7 从事故经验到知识候选
-
-事故关闭后，系统编译一份结果：根因、证据、有效处置、无效尝试、适用版本和建议更新。它首先是 `knowledge_candidate`，不自动进入公共 Wiki。Runbook 所有者审核后，分别更新正式手册、代码注释或监控规则。
-
-晋升后的知识链接原事故和审核记录。若同类事故再次发生，平台可以比较环境与版本，而不是无条件复制旧动作。未通过审核的候选按保留期归档，避免组织知识队列无限膨胀。
-
-这条流程使记忆承担“保存工作经验”，Wiki 承担“发布稳定解释”，规范来源承担“定义规则”。三者有流动，但没有混为一体。
-
-## 16.8 用影响题验证组合能力
-
-Golden Question “修改 `order.cancelled` 会影响什么”首先由 BM25 或向量命中事件页面；图沿 `CONSUMED_BY` 找到三个处理符号，沿仓库层级找到三个仓，沿 `TESTED_BY` 和 `DOCUMENTED_BY` 找到测试与 Runbook；Wiki 提供业务流程摘要；最终引用回到 Schema 和源码。
-
-评测分别检查必要节点召回、边证据、页面声明和源码引用。去掉图后，文本检索可能漏掉命名不同的消费者；去掉 Wiki 后，证据仍在但缺少高层解释；去掉源码 ArtifactFS 后，图路径无法最终核验。消融清楚展示每层的贡献。
-
-权限矩阵再次运行：客服只能得到取消流程和政策，不得到仓库图；开发者得到代码影响；负责人还看到相关事故任务。图和 Wiki 不能绕过第 15 章的对象过滤。
-
-## 16.9 用运行证据验证企业架构声明
-
-企业架构图进入知识库后，不应被当成永远正确的现状，也不应因为与代码不同就被丢弃。Northstar 把应用架构视图中的依赖保存为 `asserted` 声明，再与代码索引的 `resolved` 边和运行追踪的 `observed` 边按同一逻辑 ID 比较。配套数据 `data/architecture-claims.json` 和 `NorthstarPlatform.architecture_consistency()` 实现了最小闭环。
+**新增输入**：扩展教学 fixture 中的 `data/relations.json`、`data/domain-model.json`、`data/architecture-claims.json` 与运行观察。**新增代码**：`src/knowledge_views.py`。它只接收已经可见的对象 ID、边或架构声明，不直接读取数据文件，也不自行决定谁有权限。
 
 ```bash
 cd examples/enterprise-case
+python3 src/northstar.py "修改 order.cancelled 会影响什么" \
+  --role developer --graph-seed event-order-cancelled
+```
+
+读者应该在 `relations` 中看到三条 `CONSUMED_BY` 边，再沿每个消费者看到 `TESTED_BY` 边。若将相同命令换为 `--role support`，起点事件本身对该角色不可见，遍历结果是空数组。这个空结果比“只隐藏末端代码节点”更重要：它证明权限边界在图构建前就已经生效。
+
+## 16.2 先让关系有可检查的含义
+
+图数据库不自动带来知识模型。Northstar 的关系类型、主客体类型、时间性和可接受证据等级集中定义在 `data/domain-model.json`。例如：
+
+```json
+{
+  "CONSUMED_BY": {
+    "from": "EventSchema",
+    "to": "CodeSymbol",
+    "cardinality": "one_to_many",
+    "allowedEvidence": ["deterministic", "resolved"],
+    "temporal": true
+  }
+}
+```
+
+而实例边必须带能回跳的证据：
+
+```json
+{
+  "from": "event-order-cancelled",
+  "type": "CONSUMED_BY",
+  "to": "code-refund-consumer",
+  "evidence_tier": "resolved",
+  "evidence": "code://northstar/refund-worker@abc123/consumer.py#handle_order_cancelled"
+}
+```
+
+这两层缺一不可。只存边而没有关系契约，会把“服务调用 API”“事件被代码消费”“团队值班”混成同一种连接；只有模型而没有实例与证据，则无法回答任何能力问题。`test_domain_model.py` 同时检查关系约束、实例边、时间约束和每个对象的治理信封。
+
+## 16.3 C3：在授权集合内遍历图
+
+`knowledge_views.trace_dependency()` 的输入是 `edges`、`visible_ids`、起点和最大跳数。它的第一步不是搜索，而是限制邻接表：
+
+```python
+for edge in edges:
+    if edge["from"] in visible_ids and edge["to"] in visible_ids:
+        adjacency[edge["from"]].append(edge)
+```
+
+随后才执行有界广度优先遍历。图查询的“可见性”不是在最终路径上打码，而是无权节点和边根本不进入邻接表。生产系统可以把这一步下推到图数据库、按安全域分图，或在网关做策略编译；无论选择何种后端，测试应验证同一条路径不能跨过 ACL。
+
+每个代码仓在概念上是子图：仓包含文件，文件定义符号，符号消费事件、调用 API，测试覆盖符号。仓间通过事件、API、包和部署产物连接。Northstar 的教学 fixture 只实现三个消费者和一个仓对象，正是为了让读者清楚看见子图与跨图连接的区别；它不声称已经对真实仓库运行 Tree-sitter 或 SCIP。
+
+### 从教学数据到真实代码索引
+
+在生产系统中，Tree-sitter 可提供文件、符号和候选调用，语言索引或编译信息可提高符号关系确定性，SCIP 或 LSP 可提供跨编辑器导航。不同证据等级必须保留：语法候选不能伪装成编译级调用，运行追踪也不能被当成代码的完整静态证明。最终证据仍应回到 ArtifactFS 中固定提交的源码引用，详见[第 18 章](/part-5/chapter-18)。
+
+## 16.4 C3：编译不泄露的 Wiki
+
+图让系统能导航，Wiki 让人能从合适的抽象层开始理解。运行以下命令：
+
+```bash
+python3 src/northstar.py --wiki --role support
+python3 src/northstar.py --wiki --role developer
+```
+
+两个输出都是确定性页面列表。每页的 `inputs` 是本页使用的版本化引用，因此既是血缘，也让页面可以在输入变化时失效。support 页面只包含政策、退款事件和团队信息；developer 页面可以包含代码与工程资料。平台不会先生成工程页面再从文本中删字段，因为剩余描述可能仍泄露仓、符号或内部处置步骤。
+
+`knowledge_views.build_role_scoped_wiki()` 的实现保持简单：按系统分组可见对象，使用模板写入标题、摘要和引用。这是有意选择。没有模型时，读者仍能检查页面输入和 ACL；生产系统可以在模板之后调用模型生成叙述，但每个声明都必须返回引用并通过 Schema、权限和事实检查。
+
+一个可靠 Wiki 至少需要以下发布规则：
+
+1. 输入对象属于同一已发布 Snapshot Manifest；
+2. 每个关键字段可回到对象或边证据；
+3. 页面按安全域分别生成；
+4. 来源变更、ACL 变更或模型提示升级会使相关页面 stale；
+5. 高风险处置页要经过人工审核，不能仅因模型生成成功而作为行动依据。
+
+## 16.5 C3：将企业架构声明接入运行反馈
+
+企业架构图不是“永远正确的现状”，但也不应因为代码找不到某条边就被删除。Northstar 将应用架构视图保存为 `asserted` 声明，并与代码解析的 `resolved` 关系、运行追踪的 `observed` 关系并列比较。
+
+```bash
 python3 src/northstar.py --architecture-consistency --role developer
 ```
 
-比较结果分为三类：声明且有实现或运行证据，说明当前证据支持该架构关系；声明但没有当前证据，表示待核验的过期、未启用或未覆盖路径，不能仅凭“未观察到”判定为死架构；有代码或运行证据却没有声明，则是需要架构负责人确认的影子依赖候选。每一类都保留声明来源与观察证据，而不是压成一个真假值。
+结果严格分为三类：
 
-教学 fixture 中，`refund-worker` 对 `create_refund` 的调用同时存在架构声明和代码解析证据；对 `legacy_refund` 的声明没有当前实现或追踪证据；运行追踪还观察到未被架构视图声明的 `risk_check` 调用。测试验证三类集合，并验证无权查看相关服务与 API 的角色得不到差异结果。
+| 结果 | Northstar 示例 | 含义 |
+|---|---|---|
+| `declared_and_evidenced` | `refund-worker -> create_refund` | 架构声明有代码或运行证据支持 |
+| `declared_not_evidenced` | `refund-worker -> legacy_refund` | 待核验，不等于已死路径 |
+| `evidenced_not_declared` | `refund-worker -> risk_check` | 影子依赖候选，需架构负责人确认 |
 
-这使企业上下文平台成为 EA 的运行证据反馈通道，而不是 EA 的替代品。架构负责人仍决定目标状态与处置方式；平台负责持续展示“声明、实现、观察”之间的差异、时间和证据覆盖。它也说明了为何第 8 章的证据等级不能退化为单一置信分数：三类边描述的是不同命题。
+`knowledge_views.compare_architecture_claims()` 特意保留声明来源和实现/运行证据，而不把三类结果压缩为一个置信分数。前者回答“架构说应该怎样”，后者回答“本次索引或观察发现了什么”；它们是不同命题。这正是企业架构资产成为上下文来源而非被上下文平台取代的方式。
 
-## 本章小结
+## 16.6 C3：任务记忆只保存工作，不自动改写组织知识
 
-Northstar 先以服务目录、Schema、源码和测试建立确定性图骨架，再让模型推断补充语义。代码仓作为子图通过事件和 API 连接，分层 Wiki 则把图与来源编译成不同安全域的阅读视图。变更从叶子沿血缘增量失效，任务记忆保存事故工作但不自动晋升为组织知识。企业架构声明与代码、运行证据的持续比较进一步把规范资产接入反馈闭环。共同价值是让检索结果能够在抽象层之间导航、验证并持续更新，而不是生成更多页面。
+Northstar 的 `TaskMemory` 以任务 ID 保存事件序列。诊断开始、动作预览、确认、执行和验证都会追加事件，因此模型或进程重启后可以恢复任务状态，而不必重新依赖旧聊天窗口。实时队列观察则保留时间和 TTL，过期后只能当作历史证据，不能继续代表当前状态。
+
+任务记忆和 Wiki 的职责不同：
+
+| 载体 | 保存什么 | 如何进入长期知识 |
+|---|---|---|
+| 任务记忆 | 已做检查、被排除假设、待确认动作、回执 | 事故关闭后形成候选 |
+| Wiki | 稳定解释、导航与已审核摘要 | 由明确来源和审核记录生成 |
+| Runbook/政策/代码 | 规范或原始事实 | 由其所有者修订并重新摄取 |
+
+因此，一次事故中“`retry_backoff` 曾被设为 60 秒”不能自动成为下一次事故的根因结论。它应保留版本和适用条件，先作为诊断线索；经过复盘与所有者审核后，才可能更新 Runbook 或监控规则。
+
+## 16.7 C3 的验收与生产边界
+
+```bash
+python3 -m unittest tests.test_domain_model tests.test_architecture_consistency tests.test_northstar -v
+```
+
+这些测试分别保护：实体与边契约、架构声明与证据的三类差异、图遍历 ACL、Wiki 血缘与角色安全域、任务记忆隔离。它们不是图谱“准确率”的统计估计；真实企业仍需要对代码解析精度、未解析边、页面忠实度、增量延迟和人工审核成本做评测。
+
+下一章进入 C4 和 C5。它不会给 Agent 一堆未经分类的检索片段，而是将证据、派生 Wiki、运行观察、任务记忆、缺口和工具可见性组织成 Context Package，并将读权限与写权限保持分离。
 
 ## 延伸阅读
 

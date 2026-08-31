@@ -67,10 +67,10 @@ export default withMermaid(defineConfig({
         text: '第四部分 Northstar 实践',
         collapsed: false,
         items: [
-          { text: '14. 案例与需求', link: '/part-4/chapter-14' },
-          { text: '15. 可信证据检索', link: '/part-4/chapter-15' },
-          { text: '16. Wiki、图与记忆', link: '/part-4/chapter-16' },
-          { text: '17. 可行动上下文', link: '/part-4/chapter-17' }
+          { text: '14. 成品导览与构建路线', link: '/part-4/chapter-14' },
+          { text: '15. C0-C2：可信检索', link: '/part-4/chapter-15' },
+          { text: '16. C3：Wiki、图与记忆', link: '/part-4/chapter-16' },
+          { text: '17. C4-C5：可行动上下文', link: '/part-4/chapter-17' }
         ]
       },
       {

@@ -47,7 +47,7 @@ class GoldenQuestionTest(unittest.TestCase):
                     tools = set(platform.allowed_tools(principal, item["id"]))
                     self.assertFalse(set(item["forbidden_tools"]) & tools)
                 elif mode == "action_preview":
-                    platform.task_states[item["id"]] = "diagnosing"
+                    platform.begin_diagnosis(item["id"], principal)
                     self.assertIn(item["expected_tool"], platform.allowed_tools(principal, item["id"]))
                     preview = platform.prepare_replay(item["id"], "refund-queue", principal)
                     self.assertGreater(preview["message_count"], 0)
