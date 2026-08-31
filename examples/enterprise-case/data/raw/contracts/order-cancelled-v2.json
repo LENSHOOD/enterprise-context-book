@@ -1,0 +1,6 @@
+{
+  "event": "order.cancelled",
+  "version": "v2",
+  "fields": ["order_id", "tenant_id", "payment_status", "occurred_at"],
+  "consumers": ["refund-worker", "inventory", "notification"]
+}

@@ -15,9 +15,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
-import re
-from collections import Counter, defaultdict, deque
+import sys
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -25,35 +24,21 @@ from typing import Iterable
 
 
 ROOT = Path(__file__).parents[1]
-TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*|[\u4e00-\u9fff]")
-SYNONYMS = {
-    "退款": {"refund", "create_refund", "退回"},
-    "取消": {"cancel", "cancelled", "order.cancelled"},
-    "积压": {"backlog", "lag", "queue"},
-    "影响": {"impact", "consumer", "依赖"},
-    "代码": {"code", "symbol", "实现"},
-}
+SRC = Path(__file__).parent
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from knowledge_views import build_role_scoped_wiki, compare_architecture_claims, trace_dependency
+from retrieval import bm25, reciprocal_rank_fusion, semantic_proxy
 
 READ_TOOLS = {
     "support": ["search_context", "get_evidence"],
     "developer": ["search_context", "get_evidence", "trace_dependency"],
     "sre": ["search_context", "get_evidence", "trace_dependency", "get_current_status"],
-    "incident_commander": ["search_context", "get_evidence", "trace_dependency", "get_current_status"],
+    "incident_commander": ["get_current_status"],
 }
-ACTION_ROLES = {"sre", "incident_commander"}
-
-
-def tokenize(text: str) -> list[str]:
-    return [token.lower() for token in TOKEN_RE.findall(text)]
-
-
-def semantic_terms(text: str) -> set[str]:
-    terms = set(tokenize(text))
-    for key, values in SYNONYMS.items():
-        if key in text or terms.intersection(values):
-            terms.add(key)
-            terms.update(values)
-    return terms
+DIAGNOSIS_ROLE = "sre"
+APPROVER_ROLE = "incident_commander"
 
 
 @dataclass(frozen=True)
@@ -96,6 +81,7 @@ class NorthstarPlatform:
         ).encode()
         self.manifest = f"northstar-{hashlib.sha256(canonical).hexdigest()[:12]}"
         self.task_states: dict[str, str] = defaultdict(lambda: "opened")
+        self.task_operators: dict[str, dict] = {}
         self.previews: dict[str, dict] = {}
         self.tokens: dict[str, dict] = {}
         self.receipts: dict[str, dict] = {}
@@ -146,36 +132,11 @@ class NorthstarPlatform:
 
     @staticmethod
     def _bm25(question: str, documents: list[dict]) -> list[tuple[str, float]]:
-        query_terms = tokenize(question)
-        tokenized = [tokenize(f"{d['title']} {d['text']}") for d in documents]
-        avg = sum(map(len, tokenized)) / max(len(tokenized), 1)
-        df = Counter(term for terms in tokenized for term in set(terms))
-        scores: list[tuple[str, float]] = []
-        for doc, terms in zip(documents, tokenized):
-            frequencies = Counter(terms)
-            score = 0.0
-            for term in query_terms:
-                frequency = frequencies[term]
-                if not frequency:
-                    continue
-                inverse = math.log(1 + (len(documents) - df[term] + 0.5) / (df[term] + 0.5))
-                denominator = frequency + 1.2 * (0.25 + 0.75 * len(terms) / max(avg, 1))
-                score += inverse * frequency * 2.2 / denominator
-            if score:
-                scores.append((doc["id"], score))
-        return sorted(scores, key=lambda item: (-item[1], item[0]))
+        return bm25(question, documents)
 
     @staticmethod
     def _semantic(question: str, documents: list[dict]) -> list[tuple[str, float]]:
-        query = semantic_terms(question)
-        scores = []
-        for doc in documents:
-            terms = semantic_terms(f"{doc['title']} {doc['text']}")
-            union = query | terms
-            score = len(query & terms) / len(union) if union else 0
-            if score:
-                scores.append((doc["id"], score))
-        return sorted(scores, key=lambda item: (-item[1], item[0]))
+        return semantic_proxy(question, documents)
 
     def search(
         self, question: str, principal: Principal, limit: int = 5,
@@ -186,14 +147,9 @@ class NorthstarPlatform:
         disabled_channels = disabled_channels or set()
         lexical = [] if "bm25" in disabled_channels else self._bm25(question, visible)
         semantic = [] if "semantic_proxy" in disabled_channels else self._semantic(question, visible)
-        fused: dict[str, float] = defaultdict(float)
-        channels: dict[str, list[str]] = defaultdict(list)
-        for channel, ranking in (("bm25", lexical), ("semantic_proxy", semantic)):
-            for rank, (doc_id, _) in enumerate(ranking, start=1):
-                fused[doc_id] += 1 / (60 + rank)
-                channels[doc_id].append(channel)
-        ranked = sorted(fused, key=lambda doc_id: (-fused[doc_id], doc_id))[:limit]
-        return [self._hit(self.by_id[doc_id], fused[doc_id], channels[doc_id]) for doc_id in ranked]
+        rankings = {"bm25": lexical, "semantic_proxy": semantic}
+        ranked = reciprocal_rank_fusion(rankings, limit)
+        return [self._hit(self.by_id[doc_id], score, channels) for doc_id, score, channels in ranked]
 
     @staticmethod
     def _hit(doc: dict, score: float, channels: list[str]) -> dict:
@@ -205,112 +161,15 @@ class NorthstarPlatform:
         }
 
     def trace(self, start: str, principal: Principal, max_hops: int = 2) -> list[dict]:
-        """Traverse only edges whose endpoints are both authorized."""
         visible = {doc["id"] for doc in self.visible_documents(principal)}
-        if start not in visible:
-            return []
-        adjacency: dict[str, list[dict]] = defaultdict(list)
-        for edge in self.edges:
-            if edge["from"] in visible and edge["to"] in visible:
-                adjacency[edge["from"]].append(edge)
-        found, queue = [], deque([(start, 0)])
-        visited = {start}
-        while queue:
-            node, depth = queue.popleft()
-            if depth == max_hops:
-                continue
-            for edge in adjacency[node]:
-                found.append(edge)
-                if edge["to"] not in visited:
-                    visited.add(edge["to"])
-                    queue.append((edge["to"], depth + 1))
-        return found
+        return trace_dependency(self.edges, visible, start, max_hops)
 
     def architecture_consistency(self, principal: Principal) -> dict[str, list[dict]]:
-        """Compare declared EA relations with implementation and runtime evidence.
-
-        Absence of evidence is reported for review; it is not treated as proof that a
-        declared path is dead. ACL filtering happens before either side is compared.
-        """
         visible = {doc["id"] for doc in self.visible_documents(principal)}
-        scope = self.architecture_claims["scope"]
-        relation_types = set(scope["relation_types"])
-        from_ids = set(scope.get("from_ids", []))
-        to_ids = set(scope.get("to_ids", []))
-
-        def in_scope(item: dict) -> bool:
-            return (
-                item["type"] in relation_types
-                and (not from_ids or item["from"] in from_ids)
-                and (not to_ids or item["to"] in to_ids)
-            )
-
-        claims = {
-            (claim["from"], claim["type"], claim["to"]): claim
-            for claim in self.architecture_claims["claims"]
-            if in_scope(claim)
-            and claim["from"] in visible
-            and claim["to"] in visible
-        }
-        evidence: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
-        for edge in self.edges:
-            key = (edge["from"], edge["type"], edge["to"])
-            if (
-                in_scope(edge)
-                and edge["evidence_tier"] in {"deterministic", "resolved", "observed"}
-                and edge["from"] in visible
-                and edge["to"] in visible
-            ):
-                evidence[key].append(edge)
-
-        declared = set(claims)
-        evidenced = set(evidence)
-        source = self.architecture_claims["source"]
-
-        def claim_record(key: tuple[str, str, str]) -> dict:
-            return {**claims[key], "claim_source": source}
-
-        def evidence_record(key: tuple[str, str, str]) -> dict:
-            return {
-                "from": key[0],
-                "type": key[1],
-                "to": key[2],
-                "evidence": sorted(
-                    evidence[key], key=lambda edge: (edge["evidence_tier"], edge["evidence"])
-                ),
-            }
-
-        return {
-            "declared_and_evidenced": [
-                {**claim_record(key), "evidence": evidence_record(key)["evidence"]}
-                for key in sorted(declared & evidenced)
-            ],
-            "declared_not_evidenced": [
-                claim_record(key) for key in sorted(declared - evidenced)
-            ],
-            "evidenced_not_declared": [
-                evidence_record(key) for key in sorted(evidenced - declared)
-            ],
-        }
+        return compare_architecture_claims(self.architecture_claims, self.edges, visible)
 
     def build_wiki(self, principal: Principal) -> list[dict]:
-        """Compile deterministic pages; inputs double as lineage."""
-        visible = self.visible_documents(principal)
-        grouped: dict[str, list[dict]] = defaultdict(list)
-        for doc in visible:
-            grouped[doc.get("system", "business")].append(doc)
-        pages = []
-        for system, docs in sorted(grouped.items()):
-            docs.sort(key=lambda doc: (doc["kind"], doc["id"]))
-            pages.append({
-                "page_id": f"wiki:system:{system}:{principal.role}",
-                "title": f"{system} 系统知识页",
-                "status": "ready",
-                "acl_role": principal.role,
-                "inputs": [doc["citation"] for doc in docs],
-                "sections": [{"title": doc["title"], "summary": doc["text"]} for doc in docs],
-            })
-        return pages
+        return build_role_scoped_wiki(self.visible_documents(principal), principal.role)
 
     def get_status(self, resource: str, principal: Principal) -> dict | None:
         status = self.runtime.get(resource)
@@ -318,14 +177,42 @@ class NorthstarPlatform:
             return None
         return {key: value for key, value in status.items() if key != "acl"}
 
+    def begin_diagnosis(self, task_id: str, principal: Principal) -> str:
+        """Bind an incident to the SRE responsible for diagnosis and execution."""
+        if principal.role != DIAGNOSIS_ROLE:
+            raise PermissionError("diagnosis requires the SRE role")
+        if self.task_states[task_id] != "opened":
+            raise ValueError("task has already started")
+        self.task_states[task_id] = "diagnosing"
+        self.task_operators[task_id] = {
+            "user_id": principal.user_id,
+            "role": principal.role,
+            "tenant": principal.tenant,
+        }
+        self.memory.append(task_id, {"type": "diagnosis_started", "actor": principal.user_id})
+        return self.task_states[task_id]
+
+    def _is_task_operator(self, task_id: str, principal: Principal) -> bool:
+        return self.task_operators.get(task_id) == {
+            "user_id": principal.user_id,
+            "role": principal.role,
+            "tenant": principal.tenant,
+        }
+
     def allowed_tools(self, principal: Principal, task_id: str) -> list[str]:
         tools = list(READ_TOOLS.get(principal.role, []))
         state = self.task_states[task_id]
-        if principal.role in ACTION_ROLES and state in {"diagnosing", "action_proposed"}:
+        if principal.role == DIAGNOSIS_ROLE and self._is_task_operator(task_id, principal) and state == "diagnosing":
             tools.append("prepare_replay")
-        if principal.role in ACTION_ROLES and state == "approved":
+        has_visible_preview = any(
+            preview["task_id"] == task_id and preview["tenant_scope"] == principal.tenant
+            for preview in self.previews.values()
+        )
+        if principal.role == APPROVER_ROLE and state == "action_proposed" and has_visible_preview:
+            tools.extend(["confirm_replay", "reject_replay"])
+        if self._is_task_operator(task_id, principal) and state == "approved":
             tools.append("execute_replay")
-        if principal.role in ACTION_ROLES and state == "verifying":
+        if self._is_task_operator(task_id, principal) and state == "verifying":
             tools.append("verify_replay")
         return tools
 
@@ -333,8 +220,10 @@ class NorthstarPlatform:
         self, task_id: str, queue: str, principal: Principal,
         now: datetime | None = None,
     ) -> dict:
-        if principal.role not in ACTION_ROLES:
-            raise PermissionError("replay preview requires an operations role")
+        if principal.role != DIAGNOSIS_ROLE or not self._is_task_operator(task_id, principal):
+            raise PermissionError("replay preview requires the assigned SRE")
+        if self.task_states[task_id] != "diagnosing":
+            raise ValueError("replay preview requires an active diagnosis")
         status = self.get_status(queue, principal)
         if status is None:
             raise PermissionError("queue is not visible to this principal")
@@ -346,6 +235,7 @@ class NorthstarPlatform:
             "tenant_scope": principal.tenant,
             "message_count": min(status["queue_depth"], 100),
             "queue_depth": status["queue_depth"],
+            "prepared_by": self.task_operators[task_id],
         }
         params_hash = hashlib.sha256(
             json.dumps(params, sort_keys=True, separators=(",", ":")).encode()
@@ -367,8 +257,14 @@ class NorthstarPlatform:
         now: datetime | None = None,
     ) -> str:
         preview = self.previews.get(preview_id)
-        if not preview or principal.role != "incident_commander":
+        if (
+            not preview
+            or principal.role != APPROVER_ROLE
+            or principal.tenant != preview["tenant_scope"]
+        ):
             raise PermissionError("confirmation requires the incident commander")
+        if self.task_states[preview["task_id"]] != "action_proposed":
+            raise ValueError("confirmation requires a proposed action")
         now = now or datetime.now(timezone.utc)
         if now >= datetime.fromisoformat(preview["expires_at"]):
             raise ValueError("preview expired")
@@ -376,27 +272,57 @@ class NorthstarPlatform:
         token = hashlib.sha256(payload.encode()).hexdigest()
         self.tokens[token] = {
             "preview_id": preview_id,
-            "user_id": principal.user_id,
+            "approved_by": principal.user_id,
             "tenant": principal.tenant,
+            "executor": preview["prepared_by"],
             "expires_at": preview["expires_at"],
         }
         self.task_states[preview["task_id"]] = "approved"
         self.memory.append(preview["task_id"], {"type": "confirmed", "preview_id": preview_id})
         return token
 
+    def reject(self, preview_id: str, principal: Principal) -> None:
+        """Record that the designated approver rejected this specific action preview."""
+        preview = self.previews.get(preview_id)
+        if (
+            not preview
+            or principal.role != APPROVER_ROLE
+            or principal.tenant != preview["tenant_scope"]
+        ):
+            raise PermissionError("rejection requires the incident commander")
+        if self.task_states[preview["task_id"]] != "action_proposed":
+            raise ValueError("rejection requires a proposed action")
+        self.task_states[preview["task_id"]] = "needs_human"
+        self.memory.append(preview["task_id"], {"type": "rejected", "preview_id": preview_id})
+
     def execute_replay(
         self, token: str, idempotency_key: str, principal: Principal,
         now: datetime | None = None,
     ) -> dict:
-        if idempotency_key in self.receipts:
-            return self.receipts[idempotency_key]
         grant = self.tokens.get(token)
-        if not grant or grant["user_id"] != principal.user_id or grant["tenant"] != principal.tenant:
+        if not grant or grant["tenant"] != principal.tenant or grant["executor"] != {
+            "user_id": principal.user_id,
+            "role": principal.role,
+            "tenant": principal.tenant,
+        }:
             raise PermissionError("invalid confirmation token")
+        preview = self.previews[grant["preview_id"]]
         now = now or datetime.now(timezone.utc)
         if now >= datetime.fromisoformat(grant["expires_at"]):
             raise ValueError("confirmation token expired")
-        preview = self.previews[grant["preview_id"]]
+        # A valid executor may safely retry a completed request, but no caller sees
+        # a cached receipt until the token, expiry, and executor binding are checked.
+        existing = self.receipts.get(idempotency_key)
+        if existing:
+            if (
+                existing["task_id"] != preview["task_id"]
+                or existing["target_queue"] != preview["target_queue"]
+                or existing["tenant"] != principal.tenant
+            ):
+                raise ValueError("idempotency key conflicts with another action")
+            return existing
+        if self.task_states[preview["task_id"]] != "approved":
+            raise ValueError("task is not approved for execution")
         status = self.get_status(preview["target_queue"], principal)
         if not status or status["queue_depth"] != preview["queue_depth"]:
             raise ValueError("queue state changed; prepare and confirm again")
@@ -410,6 +336,8 @@ class NorthstarPlatform:
             "replayed": preview["message_count"],
             "before_queue_depth": preview["queue_depth"],
             "baseline_error_rate": status["provider_error_rate"],
+            "executed_by": principal.user_id,
+            "tenant": principal.tenant,
         }
         self.receipts[idempotency_key] = receipt
         self.task_states[preview["task_id"]] = "verifying"
@@ -417,6 +345,8 @@ class NorthstarPlatform:
         return receipt
 
     def verify_replay(self, receipt: dict, principal: Principal) -> dict:
+        if not self._is_task_operator(receipt["task_id"], principal):
+            raise PermissionError("verification requires the assigned SRE")
         status = self.get_status(receipt["target_queue"], principal)
         if status is None:
             raise PermissionError("queue is not visible to this principal")
@@ -465,11 +395,14 @@ def main() -> None:
     parser.add_argument("--graph-seed")
     parser.add_argument("--runtime-resource")
     parser.add_argument("--architecture-consistency", action="store_true")
+    parser.add_argument("--wiki", action="store_true")
     args = parser.parse_args()
     platform = NorthstarPlatform()
     principal = Principal("demo-user", args.role)
     if args.architecture_consistency:
         result = platform.architecture_consistency(principal)
+    elif args.wiki:
+        result = platform.build_wiki(principal)
     else:
         result = platform.context(
             args.question, principal, args.task,

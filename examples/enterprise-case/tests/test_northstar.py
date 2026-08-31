@@ -1,5 +1,7 @@
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
 import sys
 import unittest
 
@@ -92,6 +94,26 @@ class NorthstarPlatformTest(unittest.TestCase):
         self.assertEqual(["product-cancellation-policy-v1"], [doc["id"] for doc in before_change])
         self.assertEqual(["product-cancellation-policy"], [doc["id"] for doc in after_change])
         self.assertEqual([], not_yet_ingested)
+
+    def test_cli_emits_role_scoped_wiki(self):
+        output = subprocess.check_output(
+            [sys.executable, str(MODULE_PATH), "--wiki", "--role", "support"],
+            text=True,
+        )
+        pages = json.loads(output)
+        inputs = {item for page in pages for item in page["inputs"]}
+        self.assertTrue(pages)
+        self.assertFalse(any(item.startswith("code://") for item in inputs))
+
+    def test_time_demo_exposes_both_time_axes(self):
+        output = subprocess.check_output(
+            [sys.executable, str(MODULE_PATH.parents[0] / "time_demo.py")],
+            text=True,
+        )
+        result = json.loads(output)
+        self.assertEqual(["product-cancellation-policy-v1"], result["before_policy_change"])
+        self.assertEqual(["product-cancellation-policy"], result["after_policy_change"])
+        self.assertEqual([], result["not_yet_ingested"])
 
 
 if __name__ == "__main__":

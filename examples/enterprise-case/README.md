@@ -1,30 +1,71 @@
-# Northstar Commerce 可复现纵向切片
+# Northstar Commerce：渐进式企业上下文案例
 
-该原型使用 Python 标准库验证书中的核心契约：召回前 ACL、版本化引用、BM25 与离线语义代理通道融合、受权限约束的关系遍历、企业架构声明与实现/运行证据的差异检测、带血缘的 Wiki、任务记忆、实时观察、结构化 Context Package 和最小受控动作闭环。它是本地降级实现，不冒充大规模生产检索；数据库、嵌入模型和图后端可以在保持接口与测试的前提下替换。
+Northstar 是本书第四部分的可运行案例。它不是电商平台的缩小复刻，而是一个可检查的教学世界：读者先看到两个真实工作任务的最终结果，再从原始来源逐步构造对象、检索、关系、Wiki、Context Package 和受控动作。
+
+## 先分清三层
+
+| 层次 | 内容 | 本仓库的状态 |
+|---|---|---|
+| 目标企业 | 订单、支付、库存、履约、通知五个逻辑服务及其协作 | 业务地图，用来解释问题 |
+| 教学 fixture | 19 个对象、13 条关系、3 个代码消费者、1 个逻辑仓 | 可运行、可审阅、故意很小 |
+| 生产化扩展 | 真实连接器、PostgreSQL/pgvector、Tree-sitter、SCIP、MCP/REST、持久任务 | 只给替换边界，不宣称已交付 |
+
+## 六个检查点
+
+| 检查点 | 你完成的能力 | 主要文件 | 证明 |
+|---|---|---|---|
+| C0 | 阅读原始政策、Runbook、事件、代码与测试 | `data/raw/` | 来源仍可人工检查 |
+| C1 | 编译版本化对象并做 ACL-first BM25 | `src/build_baseline.py`、`src/context_demo.py` | `test_build_baseline.py` |
+| C2 | 加入离线语义代理、RRF 与时间语义 | `src/northstar.py` | `test_northstar.py` |
+| C3 | 建立图、Wiki、记忆与 EA 一致性检测 | `data/relations.json`、`data/architecture-claims.json` | 图、Wiki、EA 测试 |
+| C4 | 组装 Context Package 与实时观察 | `NorthstarPlatform.context()` | Context Package 测试 |
+| C5 | SRE 诊断、负责人确认、SRE 执行并验证 | `action_demo.py` | `test_action_boundary.py` |
+
+## 从成品开始运行
+
+所有命令只需要 Python 标准库。
 
 ```bash
+cd examples/enterprise-case
+
+# C0-C1：从可读来源编译最小基线，再验证开发者能定位代码。
+python3 src/build_baseline.py
+python3 src/context_demo.py \
+  "handle_order_cancelled create_refund" \
+  --role developer \
+  --data generated/baseline-knowledge.json
+
+# C2-C4：完成后的影响分析、角色安全域 Wiki 与企业架构差异。
 python3 src/northstar.py "修改 order.cancelled 会影响什么" \
   --role developer --graph-seed event-order-cancelled
-python3 src/northstar.py "退款积压如何排查" \
-  --role incident_commander --runtime-resource refund-queue --task INC-1042
+python3 src/northstar.py --wiki --role support
 python3 src/northstar.py --architecture-consistency --role developer
+
+# C4：SRE 的诊断包同时包含静态证据和实时队列观察。
+python3 src/northstar.py "退款积压如何排查" \
+  --role sre --runtime-resource refund-queue --task INC-1042
+
+# C5：SRE 准备动作，incident_commander 确认，SRE 执行并验证。
 python3 src/action_demo.py
+
 python3 -m unittest discover -s tests -v
 ```
 
-`context_demo.py` 保留为第 15 章最小 BM25 基线；`northstar.py` 是完成后的纵向切片。所有数据位于 `data/`，无网络、模型密钥或外部数据库要求。
+影响分析应返回三个 `CONSUMED_BY` 消费者及其测试引用。SRE 诊断应返回 Runbook、历史事故和队列观察。动作示例应显示 `prepared_by: sre-oncall`、100 条消息的上限、负责人确认，以及队列由 842 降至 742 的验证观察。
 
-`data/domain-model.json` 是第 8 章的机器可读领域模型。它从能力问题出发，定义实体身份、关系方向与基数、允许的证据等级、时间约束和源映射；`knowledge.json`、`relations.json` 等运行数据可以视为该逻辑模型的简化物理投影。`architecture-claims.json` 保存 EA 应用视图中的 `asserted` 关系，`NorthstarPlatform.architecture_consistency()` 将它们与 `resolved`/`observed` 证据比较。示例刻意不要求 RDF 或图数据库，以说明知识建模与具体存储可以解耦。
+## 角色边界
 
-Northstar、commit、业务事件及其日期均为合成 fixture。`time.valid_from` 表示示例业务生效时间，`time.observed_at` 表示教学系统摄取时间；两者不再用同一“写文件日期”代填。`NorthstarPlatform.documents_as_of` 演示双轴过滤，但只保存首次观察时间，精确历史重放仍需使用当时发布的不可变 Manifest。
+`support` 只能读取客服所需的政策和自己租户的状态；`developer` 可以读取代码与工程资料；`sre` 负责收集事故证据、准备和执行受控动作；`incident_commander` 只读取运行状态和动作预览，并在待确认阶段批准或拒绝。负责人不会因为拥有确认权而获得 SRE 的静态证据访问权，也不会获得执行令牌。
 
-Docker Compose 一键验证：
+## 实现边界
+
+`context_demo.py` 是 C1 的单文件 BM25 基线。`northstar.py` 是 C2-C5 的完成后纵向切片，集中展示保持不变的对象、ACL、引用、状态机和审计契约。离线语义代理是同义词扩展与 Jaccard 相似度，不是向量检索；内存队列和任务记忆不等同于真实运行系统。生产化组件可以替换实现，但不应绕过本例由测试保护的契约。
+
+Docker Compose 也可执行全部验证：
 
 ```bash
 docker compose up --build --abort-on-container-exit verify
 docker compose --profile query run --rm query
 ```
 
-容器禁用网络、使用只读文件系统，并固定 Python 3.12.5 的镜像 manifest 摘要。升级基础镜像时应重新构建并运行全部测试。
-
-实现边界：离线语义代理使用确定性同义词扩展与 Jaccard 相似度，不是向量检索；生产部署应替换为经过企业题集评测的嵌入模型。任务记忆和重放队列都是进程内 fixture，用于证明主体隔离、审批、幂等和验证契约；持久化版本应使用带版本控制和删除策略的数据库与真实工具网关。
+容器禁用网络、使用只读文件系统，并固定 Python 3.12.5 镜像 manifest 摘要。
