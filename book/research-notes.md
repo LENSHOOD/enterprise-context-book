@@ -33,6 +33,13 @@
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
 - [OWASP Top 10 for LLM Applications](https://genai.owasp.org/llm-top-10/)
 
+## 运营本体与企业对象模型
+
+- [Palantir Ontology 概览](https://palantir.com/docs/foundry/ontology/overview/)
+- [Palantir Ontology system](https://www.palantir.com/docs/foundry/architecture-center/ontology-system)
+- [Palantir Object types](https://palantir.com/docs/foundry/object-types/overview/)
+- [Palantir Action types](https://palantir.com/docs/foundry/action-types/overview/)
+
 ## Linux eBPF
 
 - [Linux BPF documentation](https://docs.kernel.org/bpf/)
