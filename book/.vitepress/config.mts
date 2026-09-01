@@ -68,9 +68,9 @@ export default withMermaid(defineConfig({
         collapsed: false,
         items: [
           { text: '14. 成品导览与构建路线', link: '/part-4/chapter-14' },
-          { text: '15. C0-C2：可信检索', link: '/part-4/chapter-15' },
-          { text: '16. C3：Wiki、图与记忆', link: '/part-4/chapter-16' },
-          { text: '17. C4-C5：可行动上下文', link: '/part-4/chapter-17' }
+          { text: '15. 从来源到可信检索', link: '/part-4/chapter-15' },
+          { text: '16. 从结果到可导航知识', link: '/part-4/chapter-16' },
+          { text: '17. 从上下文到经验证行动', link: '/part-4/chapter-17' }
         ]
       },
       {
