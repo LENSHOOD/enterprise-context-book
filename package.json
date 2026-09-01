@@ -1,7 +1,7 @@
 {
   "name": "enterprise-context-book",
   "private": true,
-  "version": "1.0.0-rc.5",
+  "version": "1.0.0-rc.6",
   "homepage": "https://lenshood.github.io/enterprise-context-book/",
   "repository": {
     "type": "git",

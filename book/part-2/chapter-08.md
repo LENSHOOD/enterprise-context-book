@@ -188,7 +188,59 @@ Northstar 从一个具体能力问题开始：“退款网关接口变化时，�
 
 这个结果随后成为上下文包的一部分，由智能体生成变更清单，但真正创建工单或发送通知仍需工具权限和人工确认。图谱缩小了影响范围，没有越过行动治理边界。
 
-## 8.15 模型治理：语义也需要发布流程
+## 8.15 Palantir Ontology：把本体推进到运营层
+
+Palantir 对 Ontology（本体）的产品化实践，是本书企业上下文方法的重要参照。它与本章的共同点是：都不把企业知识理解成一堆文本，而是用稳定身份、对象类型、关系、来源、权限和时间来组织业务语义；它的进一步之处在于，把业务逻辑、可提交的动作和应用接口也纳入同一套运营模型。Palantir 官方将这组能力概括为数据、逻辑、动作和安全的结合。[Palantir Ontology 概览](https://palantir.com/docs/foundry/ontology/overview/) [Ontology system](https://www.palantir.com/docs/foundry/architecture-center/ontology-system)
+
+### 8.15.1 四层构件
+
+可以用四层理解 Palantir 的运营本体，而不必把它误解为一个特定图数据库：
+
+| 构件 | 解决的问题 | 与本书概念的对应 |
+|---|---|---|
+| Object Type | 企业里有哪些可识别的业务对象？ | 领域模型中的实体类型与统一对象 |
+| Property | 对象有哪些属性、状态和时间字段？ | 知识对象内容、状态与双时间 |
+| Link Type | 对象怎样关联、基数是什么？ | 关系图中的有向、带证据边 |
+| Action / Function | 谁能以什么参数改变哪些对象？ | 工具、工作流、预览、批准与验证 |
+
+因此，`Order` 不只是 ERP 中的一行；它可以拥有客户承诺、产品、工厂和运输关系，并暴露“重新分配”“拆分”或“批准加急”等受控操作。`Function` 负责跨对象计算和业务规则，`Action` 负责把经过授权的业务意图提交为状态变化。只有对象和链接时，它更接近语义层或知识图谱；把动作、提交条件和审计纳入后，才接近可运营的企业上下文层。[Object types](https://palantir.com/docs/foundry/object-types/overview/) [Actions](https://palantir.com/docs/foundry/action-types/overview/)
+
+这里的“本体”采用 Palantir 的产品语境，不等同于 OWL 本体。OWL 关注形式化类、公理和推理；Palantir Ontology 更关注一个组织如何把数据映射成可使用、可授权、可执行的业务对象。二者可以互补：OWL/SHACL 适合跨组织语义交换和约束验证，运营本体还必须补上数据刷新、动作写回、责任人和运行反馈。
+
+### 8.15.2 从业务问题反推对象与动作
+
+Palantir 案例给出的可复用启发，不是先建立覆盖全公司的名词表，而是先选择一个需要改善的运营决策，例如“某工厂产能下降时，哪些订单应该改派”。建模团队随后依次回答：谁作决定；决定需要哪些事实；哪些对象有独立身份和生命周期；哪些关系决定影响范围；哪些计算生成候选方案；哪些变化允许写回；谁可以批准和执行。
+
+这与本书的 competency questions（能力问题）完全相容，但增加了一个“决策合同”视角：验收问题不仅要问“能否找到受影响订单”，还要问“能否在当前状态和权限下生成一个可解释、可审批、可验证的动作”。因此，`Recommendation` 和 `Decision` 往往应是独立对象，而不是在 `Order.status` 上覆盖一个值。前者保存候选方案和依据，后者保存人的决定、时间、理由和审计链。
+
+### 8.15.3 对企业上下文平台的启示
+
+Palantir 的方法可以抽象为一条平台能力链：
+
+```mermaid
+flowchart LR
+  D[数据源] --> O[对象与关系]
+  O --> F[函数与规则]
+  F --> R[推荐与分析]
+  R --> A[受控 Action]
+  A --> W[业务系统写回]
+  W --> E[结果与反馈]
+  E --> D
+  S[身份、权限、审计] -.约束.-> O
+  S -.约束.-> A
+```
+
+本书的实现不依赖 Palantir，也不要求购买同类平台。Northstar 中的领域模型、知识对象、图/Wiki 投影、Context Package 和受控动作，分别实现了这条链的不同部分。重要的架构原则是：对象模型要独立于物理索引，动作要独立于模型生成，写回要独立验证；否则平台只是把供应商的界面术语换成自己的界面术语。
+
+Palantir 的优势在于把这条链作为一套一体化产品交付，代价是对象、函数、动作、权限和应用配置会形成较强的平台耦合。企业评估时应要求导出对象定义、关系、函数、动作、权限、血缘和历史版本，并验证在平台外是否仍能解释关键决策。厂商案例中的效率或节省数字属于特定客户和部署范围，不能直接推导为一般 ROI。
+
+### 8.15.4 一个最小示例
+
+以 Northstar 的退款场景为例，Palantir 风格的运营本体可以这样映射：`RefundEvent`、`Service`、`API`、`Queue` 是对象；`Service CALLS API`、`Event CONSUMED_BY CodeSymbol` 是链接；“队列深度是否超过阈值”和“重放后是否下降”是函数或验证规则；`prepare_replay`、`confirm_replay`、`execute_replay` 是不同权限和状态下的动作。
+
+这个映射并没有取代本书已有设计，而是帮助读者看见两种语言的对应关系：第 8 章的领域模型规定对象和关系意味着什么，第 15—16 章将它们编译成可检索和可导航视图，第 17 章把允许的变化编译成带身份、批准、幂等和验证的行动闭环。
+
+## 8.16 模型治理：语义也需要发布流程
 
 领域模型不是一次性设计稿。每个类型和关系应有业务负责人和技术维护者；变更通过提案、样例、兼容性分析、验收查询和迁移计划进入新版本。新增可选属性通常可以向后兼容，拆分实体、改变关系方向或重定义既有责任关系则可能破坏已有查询，必须提供映射和弃用窗口。
 
@@ -204,6 +256,10 @@ Northstar 从一个具体能力问题开始：“退款网关接口变化时，�
 
 ## 延伸阅读
 
+- Palantir, [Ontology 概览](https://palantir.com/docs/foundry/ontology/overview/)。
+- Palantir, [Ontology system](https://www.palantir.com/docs/foundry/architecture-center/ontology-system)。
+- Palantir, [Object types](https://palantir.com/docs/foundry/object-types/overview/)。
+- Palantir, [Action types](https://palantir.com/docs/foundry/action-types/overview/)。
 - Darren Edge et al., [From Local to Global: A Graph RAG Approach to Query-Focused Summarization](https://arxiv.org/abs/2404.16130), 2024。
 - Microsoft Research, [GraphRAG documentation](https://microsoft.github.io/graphrag/)。
 - Aidan Hogan et al., [Knowledge Graphs](https://arxiv.org/abs/2003.02320), 2020。
