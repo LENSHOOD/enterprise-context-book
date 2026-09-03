@@ -1,0 +1,14 @@
+{
+  "format": "northstar-source-mappings/1",
+  "mappings": [
+    {"source": "service_catalog", "owner": "platform-operations", "produces": ["Service", "Team", "ON_CALL_FOR"], "identityRule": "service_catalog_id / org_team_id", "refreshMode": "daily_snapshot"},
+    {"source": "git_and_code_index", "owner": "developer-experience", "produces": ["Repository", "CodeSymbol", "Test", "IMPLEMENTS", "CALLS", "CONSUMED_BY", "TESTED_BY"], "identityRule": "canonical_git_url + commit + symbol", "refreshMode": "per_commit"},
+    {"source": "api_registry", "owner": "api-governance", "produces": ["API"], "identityRule": "spec_uri + operation_id + version", "refreshMode": "on_publish"},
+    {"source": "event_registry", "owner": "event-governance", "produces": ["EventSchema"], "identityRule": "schema_uri + version", "refreshMode": "on_publish"},
+    {"source": "document_system", "owner": "knowledge-governance", "produces": ["Runbook", "Policy", "ADR", "DOCUMENTED_BY"], "identityRule": "source_uri or governed document id + version", "refreshMode": "on_approval"},
+    {"source": "incident_system", "owner": "sre", "produces": ["Incident", "AFFECTED"], "identityRule": "incident_id", "refreshMode": "event_stream"},
+    {"source": "refund_event_stream", "owner": "payments", "produces": ["RefundEvent", "GOVERNED_BY"], "identityRule": "event_id", "refreshMode": "event_stream"},
+    {"source": "enterprise_architecture_repository", "owner": "enterprise-architecture", "produces": ["API", "CALLS"], "identityRule": "EA element id resolved to canonical API and service ids", "refreshMode": "on_approval"},
+    {"source": "runtime_tracing", "owner": "observability", "produces": ["API", "CALLS"], "identityRule": "runtime labels resolved through service and API registries", "refreshMode": "stream_window"}
+  ]
+}

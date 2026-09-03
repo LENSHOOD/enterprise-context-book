@@ -3,7 +3,8 @@
 
 The implementation is deliberately small, but its contracts mirror the book:
 ACL-before-retrieval, immutable citations, lexical/semantic fusion, evidence-backed
-graph traversal, generated Wiki pages, task memory, and a structured Context API.
+knowledge-model validation, graph traversal, generated Wiki pages, task memory,
+and a structured Context API.
 
 ``context_demo.py`` deliberately repeats the minimal BM25 scorer to remain a
 single-file chapter example. Keep its ranking behavior aligned with this teaching
@@ -29,6 +30,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from knowledge_views import build_role_scoped_wiki, compare_architecture_claims, trace_dependency
+from modeling import compile_domain_model, semantic_slice, validate_knowledge_base
 from retrieval import bm25, reciprocal_rank_fusion, semantic_proxy
 
 READ_TOOLS = {
@@ -69,6 +71,10 @@ class NorthstarPlatform:
             (data_dir / "architecture-claims.json").read_text(encoding="utf-8")
         )
         self.runtime = json.loads((data_dir / "runtime.json").read_text(encoding="utf-8"))
+        self.domain_model = compile_domain_model(data_dir / "modeling")
+        self.model_validation = validate_knowledge_base(
+            self.domain_model, self.documents, self.edges
+        )
         self.by_id = {doc["id"]: doc for doc in self.documents}
         self.memory = TaskMemory()
         canonical = json.dumps(
@@ -76,6 +82,7 @@ class NorthstarPlatform:
                 "documents": self.documents,
                 "edges": self.edges,
                 "architecture_claims": self.architecture_claims,
+                "domain_model": self.domain_model,
             },
             ensure_ascii=False, sort_keys=True, separators=(",", ":"),
         ).encode()
@@ -160,9 +167,39 @@ class NorthstarPlatform:
             "authority": doc.get("authority", "informative"),
         }
 
-    def trace(self, start: str, principal: Principal, max_hops: int = 2) -> list[dict]:
+    def competency_question(self, question_id: str) -> dict:
+        question = next(
+            (
+                item for item in self.domain_model["competencyQuestions"]
+                if item["id"] == question_id
+            ),
+            None,
+        )
+        if question is None:
+            raise ValueError(f"unknown competency question {question_id}")
+        return question
+
+    def trace(
+        self,
+        start: str,
+        principal: Principal,
+        max_hops: int = 2,
+        relation_types: set[str] | None = None,
+        allow_inverse_navigation: bool = False,
+    ) -> list[dict]:
+        if relation_types is not None:
+            unknown = relation_types - set(self.domain_model["relations"])
+            if unknown:
+                raise ValueError(f"unknown relation types {sorted(unknown)}")
         visible = {doc["id"] for doc in self.visible_documents(principal)}
-        return trace_dependency(self.edges, visible, start, max_hops)
+        return trace_dependency(
+            self.edges,
+            visible,
+            start,
+            max_hops,
+            allowed_relation_types=relation_types,
+            allow_inverse_navigation=allow_inverse_navigation,
+        )
 
     def architecture_consistency(self, principal: Principal) -> dict[str, list[dict]]:
         visible = {doc["id"] for doc in self.visible_documents(principal)}
@@ -363,10 +400,28 @@ class NorthstarPlatform:
         self, question: str, principal: Principal, task_id: str,
         graph_seed: str | None = None, runtime_resource: str | None = None,
         disabled_channels: set[str] | None = None,
+        competency_question_id: str | None = None,
     ) -> dict:
         disabled_channels = disabled_channels or set()
         evidence = self.search(question, principal, disabled_channels=disabled_channels)
-        relations = self.trace(graph_seed, principal) if graph_seed else []
+        competency_question = (
+            self.competency_question(competency_question_id)
+            if competency_question_id else None
+        )
+        relation_types = (
+            set(competency_question["requiredRelations"])
+            if competency_question else None
+        )
+        relations = (
+            self.trace(
+                graph_seed,
+                principal,
+                relation_types=relation_types,
+                allow_inverse_navigation=competency_question is not None,
+            )
+            if graph_seed else []
+        )
+        evidence_documents = [self.by_id[item["id"]] for item in evidence]
         observation = self.get_status(runtime_resource, principal) if runtime_resource else None
         missing = []
         if runtime_resource and observation is None:
@@ -378,6 +433,12 @@ class NorthstarPlatform:
             "task_id": task_id,
             "evidence": evidence,
             "relations": relations,
+            "semantic_contract": semantic_slice(
+                self.domain_model,
+                evidence_documents,
+                relations,
+                competency_question=competency_question,
+            ),
             "observations": [observation] if observation else [],
             "memories": self.memory.read(task_id),
             "missing": missing,
@@ -394,6 +455,7 @@ def main() -> None:
     parser.add_argument("--task", default="demo")
     parser.add_argument("--graph-seed")
     parser.add_argument("--runtime-resource")
+    parser.add_argument("--competency-question")
     parser.add_argument("--architecture-consistency", action="store_true")
     parser.add_argument("--wiki", action="store_true")
     args = parser.parse_args()
@@ -406,7 +468,9 @@ def main() -> None:
     else:
         result = platform.context(
             args.question, principal, args.task,
-            graph_seed=args.graph_seed, runtime_resource=args.runtime_resource,
+            graph_seed=args.graph_seed,
+            runtime_resource=args.runtime_resource,
+            competency_question_id=args.competency_question,
         )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

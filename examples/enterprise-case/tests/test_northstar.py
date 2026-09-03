@@ -37,6 +37,9 @@ class NorthstarPlatformTest(unittest.TestCase):
         self.assertIn("code-refund-consumer", targets)
         self.assertIn("code-inventory-consumer", targets)
         self.assertIn("code-notification-consumer", targets)
+        self.assertNotIn("incident-refund-1042", {
+            endpoint for edge in edges for endpoint in (edge["from"], edge["to"])
+        })
 
     def test_wiki_has_lineage_and_role_specific_inputs(self):
         support_pages = self.platform.build_wiki(self.support)
@@ -64,6 +67,114 @@ class NorthstarPlatformTest(unittest.TestCase):
         self.assertEqual(["refund-queue"], result["missing"])
         self.assertEqual([], result["observations"])
         self.assertRegex(result["manifest"], r"^northstar-[0-9a-f]{12}$")
+
+    def test_context_package_includes_the_model_slice_needed_to_interpret_evidence(self):
+        result = self.platform.context(
+            "修改 order.cancelled 会影响什么",
+            self.developer,
+            "CHANGE-1",
+            graph_seed="event-order-cancelled",
+            competency_question_id="CQ-EVENT-001",
+        )
+        contract = result["semantic_contract"]
+        self.assertEqual("northstar.enterprise-context", contract["model_id"])
+        self.assertEqual("CQ-EVENT-001", contract["competency_question"]["id"])
+        self.assertTrue(contract["competency_coverage"]["satisfied"])
+        self.assertIn("EventSchema", contract["entity_types"])
+        self.assertIn("CodeSymbol", contract["entity_types"])
+        self.assertIn("CONSUMED_BY", contract["relations"])
+        self.assertEqual(
+            "EventSchema", contract["relations"]["CONSUMED_BY"]["from"]
+        )
+        self.assertEqual(
+            {"EventSchema", "CodeSymbol", "Test"}, set(contract["entity_types"])
+        )
+
+    def test_api_impact_question_navigates_inverse_edges_without_reversing_semantics(self):
+        result = self.platform.context(
+            "退款网关 API 变化会影响什么",
+            self.developer,
+            "CHANGE-API",
+            graph_seed="api-create-refund",
+            competency_question_id="CQ-IMPACT-001",
+        )
+        endpoints = {
+            endpoint
+            for edge in result["relations"]
+            for endpoint in (edge["from"], edge["to"])
+        }
+        self.assertTrue({
+            "api-create-refund",
+            "service-refund-worker",
+            "repo-refund-worker",
+            "team-payments-oncall",
+            "runbook-refund-backlog",
+        }.issubset(endpoints))
+        self.assertNotIn("api-risk-check", endpoints)
+        self.assertEqual(
+            {"CALLS", "IMPLEMENTS", "ON_CALL_FOR", "DOCUMENTED_BY"},
+            {edge["type"] for edge in result["relations"]},
+        )
+        self.assertEqual(
+            {"API", "Service", "Repository", "Team", "Runbook"},
+            set(result["semantic_contract"]["entity_types"]),
+        )
+        call = next(edge for edge in result["relations"] if edge["type"] == "CALLS")
+        self.assertEqual("service-refund-worker", call["from"])
+        self.assertEqual("api-create-refund", call["to"])
+
+    def test_unknown_competency_question_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "unknown competency question"):
+            self.platform.context(
+                "test",
+                self.developer,
+                "CHANGE-UNKNOWN",
+                graph_seed="api-create-refund",
+                competency_question_id="CQ-UNKNOWN",
+            )
+
+    def test_competency_contract_is_complete_when_no_graph_query_has_run(self):
+        result = self.platform.context(
+            "退款网关 API 变化会影响什么",
+            self.developer,
+            "CHANGE-NO-GRAPH",
+            competency_question_id="CQ-IMPACT-001",
+        )
+        contract = result["semantic_contract"]
+        self.assertTrue(set(contract["competency_question"]["requiredEntityTypes"]).issubset(
+            contract["entity_types"]
+        ))
+        self.assertTrue(set(contract["competency_question"]["requiredRelations"]).issubset(
+            contract["relations"]
+        ))
+        self.assertEqual(
+            set(contract["competency_question"]["requiredEntityTypes"]),
+            set(contract["entity_types"]),
+        )
+        self.assertFalse(contract["competency_coverage"]["satisfied"])
+        self.assertEqual([], result["relations"])
+
+    def test_acl_blocked_question_exposes_contract_but_no_instances(self):
+        result = self.platform.context(
+            "退款网关 API 变化会影响什么",
+            self.support,
+            "CHANGE-BLOCKED",
+            graph_seed="api-create-refund",
+            competency_question_id="CQ-IMPACT-001",
+        )
+        contract = result["semantic_contract"]
+        self.assertFalse(contract["competency_coverage"]["satisfied"])
+        self.assertEqual([], result["relations"])
+        self.assertFalse(any(
+            item["id"] in {
+                "api-create-refund",
+                "service-refund-worker",
+                "repo-refund-worker",
+                "team-payments-oncall",
+                "runbook-refund-backlog",
+            }
+            for item in result["evidence"]
+        ))
 
     def test_context_reports_disabled_channel(self):
         result = self.platform.context(

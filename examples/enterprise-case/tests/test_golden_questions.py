@@ -38,7 +38,24 @@ class GoldenQuestionTest(unittest.TestCase):
                     else:
                         self.assertFalse(set(item["forbidden_ids"]) & ids)
                 elif mode == "graph":
-                    ids = {edge["to"] for edge in platform.trace(item["seed"], principal)}
+                    competency_question_id = item.get("competency_question_id")
+                    edges = (
+                        platform.context(
+                            item["question"],
+                            principal,
+                            item["id"],
+                            graph_seed=item["seed"],
+                            competency_question_id=competency_question_id,
+                        )["relations"]
+                        if competency_question_id
+                        else platform.trace(item["seed"], principal)
+                    )
+                    ids = {
+                        endpoint
+                        for edge in edges
+                        for endpoint in (edge["from"], edge["to"])
+                        if endpoint != item["seed"]
+                    }
                     self.assertTrue(set(item["expected_ids"]).issubset(ids))
                 elif mode == "missing":
                     package = platform.context(item["question"], principal, item["id"], runtime_resource=item["resource"])

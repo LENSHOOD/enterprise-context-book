@@ -1,0 +1,35 @@
+{
+  "format": "northstar-concept-model/1",
+  "modelId": "northstar.enterprise-context",
+  "version": "1.1.0",
+  "status": "example",
+  "boundedContexts": {
+    "commerce": {"label": "交易业务", "owner": "commerce-architecture"},
+    "engineering": {"label": "软件工程", "owner": "developer-experience"},
+    "operations": {"label": "生产运行", "owner": "sre"}
+  },
+  "entityTypes": {
+    "Service": {"identity": ["service_catalog_id"], "aliases": ["name", "runtime_label"], "boundedContext": "operations", "glossaryTerm": "term.service"},
+    "Repository": {"identity": ["canonical_git_url"], "boundedContext": "engineering", "glossaryTerm": "term.repository"},
+    "API": {"identity": ["spec_uri", "operation_id", "version"], "boundedContext": "engineering", "glossaryTerm": "term.api"},
+    "Team": {"identity": ["org_team_id"], "boundedContext": "operations", "glossaryTerm": "term.team"},
+    "Runbook": {"identity": ["source_uri"], "boundedContext": "operations", "glossaryTerm": "term.runbook"},
+    "Policy": {"identity": ["policy_id", "version"], "requiredProperties": ["regions"], "temporal": true, "boundedContext": "commerce", "glossaryTerm": "term.policy"},
+    "RefundEvent": {"identity": ["event_id"], "requiredProperties": ["region", "occurred_at"], "temporal": true, "boundedContext": "commerce", "glossaryTerm": "term.refund-event"},
+    "EventSchema": {"identity": ["schema_uri", "version"], "temporal": true, "boundedContext": "engineering", "glossaryTerm": "term.event-schema"},
+    "CodeSymbol": {"identity": ["repository", "commit", "symbol"], "boundedContext": "engineering", "glossaryTerm": "term.code-symbol"},
+    "Test": {"identity": ["repository", "commit", "test_id"], "boundedContext": "engineering", "glossaryTerm": "term.test"},
+    "ADR": {"identity": ["adr_id", "version"], "temporal": true, "boundedContext": "engineering", "glossaryTerm": "term.adr"},
+    "Incident": {"identity": ["incident_id"], "boundedContext": "operations", "glossaryTerm": "term.incident"}
+  },
+  "relations": {
+    "CALLS": {"from": "Service", "to": "API", "cardinality": "many_to_many", "allowedEvidence": ["deterministic", "resolved", "asserted", "observed"], "temporal": true, "inverse": "CALLED_BY", "meaning": "运行服务调用接口操作。", "positiveExample": "refund-worker 调用 create_refund。", "negativeExample": "代码仓包含一个客户端文件不等于运行服务已经调用该 API。"},
+    "IMPLEMENTS": {"from": "Repository", "to": "API", "cardinality": "many_to_many", "allowedEvidence": ["deterministic", "asserted"], "meaning": "代码仓包含接口操作的服务端实现。", "positiveExample": "refund-worker 仓实现 create_refund。", "negativeExample": "仓中只有 API 客户端不构成 IMPLEMENTS。"},
+    "ON_CALL_FOR": {"from": "Team", "to": "Service", "cardinality": "many_to_many", "allowedEvidence": ["deterministic", "asserted"], "temporal": true, "meaning": "团队在有效时间内承担服务值班责任。", "positiveExample": "payments-oncall 为 refund-worker 值班。", "negativeExample": "一次提交的作者不自动成为服务值班团队。"},
+    "DOCUMENTED_BY": {"from": "Service", "to": "Runbook", "cardinality": "many_to_many", "allowedEvidence": ["resolved", "asserted"], "meaning": "运行手册描述该服务的诊断或处置。", "positiveExample": "refund-worker 由退款积压手册描述。", "negativeExample": "检索中同时出现服务和文档不构成该关系。"},
+    "GOVERNED_BY": {"from": "RefundEvent", "to": "Policy", "cardinality": "many_to_one_at_event_time", "allowedEvidence": ["deterministic", "asserted"], "temporal": true, "constraints": ["policy.region contains event.region", "policy.valid_from <= event.occurred_at < policy.valid_to"], "meaning": "退款事件在发生时受一份适用政策约束。", "positiveExample": "EMEA 退款事件按发生时间匹配 EMEA 有效政策。", "negativeExample": "直接选择摄取时间最新的政策。"},
+    "CONSUMED_BY": {"from": "EventSchema", "to": "CodeSymbol", "cardinality": "one_to_many", "allowedEvidence": ["deterministic", "resolved"], "temporal": true, "meaning": "代码符号消费符合该事件契约的消息。", "positiveExample": "order.cancelled v2 被 handle_order_cancelled 消费。", "negativeExample": "函数名包含 cancelled 但没有解析到订阅关系。"},
+    "AFFECTED": {"from": "Incident", "to": "CodeSymbol", "cardinality": "many_to_many", "allowedEvidence": ["asserted", "observed"], "temporal": true, "meaning": "事故在特定观察或调查结论中涉及代码符号。", "positiveExample": "INC-1042 复盘关联到退款消费者。", "negativeExample": "时间上接近的提交不自动视为事故原因。"},
+    "TESTED_BY": {"from": "CodeSymbol", "to": "Test", "cardinality": "one_to_many", "allowedEvidence": ["deterministic", "resolved"], "meaning": "测试用例覆盖该代码符号的行为契约。", "positiveExample": "退款消费者由 test_order_cancelled 覆盖。", "negativeExample": "同目录中的任意测试不自动视为覆盖该符号。"}
+  }
+}

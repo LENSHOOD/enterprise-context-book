@@ -1,29 +1,70 @@
-"""C3 graph, Wiki, and architecture-consistency views for Northstar."""
+"""C4 graph, Wiki, and architecture-consistency views for Northstar."""
 
 from __future__ import annotations
 
 from collections import defaultdict, deque
 
 
-def trace_dependency(edges: list[dict], visible_ids: set[str], start: str, max_hops: int = 2) -> list[dict]:
-    """Traverse only evidence edges whose endpoints are already authorized."""
+def trace_dependency(
+    edges: list[dict],
+    visible_ids: set[str],
+    start: str,
+    max_hops: int = 2,
+    allowed_relation_types: set[str] | None = None,
+    allow_inverse_navigation: bool = False,
+) -> list[dict]:
+    """Navigate authorized edges while preserving their declared direction.
+
+    The default follows declared relation direction, which keeps a generic trace
+    from treating every incoming historical association as a downstream impact.
+    A task plan may explicitly enable inverse navigation: an API-change question,
+    for example, starts at the target of ``CALLS`` and ``IMPLEMENTS``.  Even then,
+    returned edges always preserve their declared semantic direction.
+    """
     if start not in visible_ids:
         return []
-    adjacency: dict[str, list[dict]] = defaultdict(list)
+    adjacency: dict[str, list[tuple[dict, str]]] = defaultdict(list)
     for edge in edges:
-        if edge["from"] in visible_ids and edge["to"] in visible_ids:
-            adjacency[edge["from"]].append(edge)
-    found, queue = [], deque([(start, 0)])
-    visited = {start}
+        if (
+            edge["from"] in visible_ids
+            and edge["to"] in visible_ids
+            and (
+                allowed_relation_types is None
+                or edge["type"] in allowed_relation_types
+            )
+        ):
+            adjacency[edge["from"]].append((edge, edge["to"]))
+            if allow_inverse_navigation:
+                adjacency[edge["to"]].append((edge, edge["from"]))
+    for neighbors in adjacency.values():
+        neighbors.sort(
+            key=lambda item: (
+                item[0]["type"], item[0]["from"], item[0]["to"], item[0]["evidence"]
+            )
+        )
+    found, queue = [], deque([(start, 0, frozenset())])
+    visited_states = {(start, frozenset())}
+    returned_edges: set[tuple[str, str, str, str]] = set()
     while queue:
-        node, depth = queue.popleft()
+        node, depth, path_relations = queue.popleft()
         if depth == max_hops:
             continue
-        for edge in adjacency[node]:
-            found.append(edge)
-            if edge["to"] not in visited:
-                visited.add(edge["to"])
-                queue.append((edge["to"], depth + 1))
+        for edge, neighbor in adjacency[node]:
+            # Repeating one semantic relation on a path commonly walks sideways
+            # to a sibling object (API <-CALLS- Service -CALLS-> other API).
+            # Production query plans should express stricter path patterns; this
+            # teaching walker uses a deterministic no-repeat guard.
+            if edge["type"] in path_relations:
+                continue
+            edge_key = (edge["from"], edge["type"], edge["to"], edge["evidence"])
+            if edge_key not in returned_edges:
+                returned_edges.add(edge_key)
+                found.append(edge)
+            next_relations = path_relations | {edge["type"]}
+            state = (neighbor, next_relations)
+            if state not in visited_states:
+                visited_states.add(state)
+                queue.append((neighbor, depth + 1, next_relations))
     return found
 
 

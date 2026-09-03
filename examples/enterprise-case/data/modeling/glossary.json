@@ -1,0 +1,113 @@
+{
+  "format": "northstar-glossary/1",
+  "terms": [
+    {
+      "id": "term.service",
+      "canonicalName": "Service",
+      "preferredLabel": "运行服务",
+      "aliases": ["应用服务"],
+      "definition": "可独立运行、部署并接受运行责任的应用能力单元；不等同于代码仓。",
+      "boundedContext": "operations",
+      "steward": "platform-architecture"
+    },
+    {
+      "id": "term.repository",
+      "canonicalName": "Repository",
+      "preferredLabel": "代码仓",
+      "aliases": ["源码仓库"],
+      "definition": "由规范 Git URL 标识的版本化源码容器；一个服务可以跨多个仓实现。",
+      "boundedContext": "engineering",
+      "steward": "developer-experience"
+    },
+    {
+      "id": "term.api",
+      "canonicalName": "API",
+      "preferredLabel": "接口操作",
+      "aliases": ["API 操作"],
+      "definition": "由规范文件、操作标识和版本共同标识的可调用接口，而不是笼统的服务名称。",
+      "boundedContext": "engineering",
+      "steward": "api-governance"
+    },
+    {
+      "id": "term.team",
+      "canonicalName": "Team",
+      "preferredLabel": "责任团队",
+      "aliases": ["组织团队"],
+      "definition": "组织目录中具有稳定标识的责任主体；值班关系另由 ON_CALL_FOR 表达。",
+      "boundedContext": "operations",
+      "steward": "organization-operations"
+    },
+    {
+      "id": "term.runbook",
+      "canonicalName": "Runbook",
+      "preferredLabel": "运行手册",
+      "aliases": ["处置手册"],
+      "definition": "经负责人审核、用于诊断或处置运行问题的版本化说明。",
+      "boundedContext": "operations",
+      "steward": "sre"
+    },
+    {
+      "id": "term.policy",
+      "canonicalName": "Policy",
+      "preferredLabel": "业务政策",
+      "aliases": ["业务规则"],
+      "definition": "在地区和有效时间范围内约束业务决策的规范性规则。",
+      "boundedContext": "commerce",
+      "steward": "commerce-policy"
+    },
+    {
+      "id": "term.refund-event",
+      "canonicalName": "RefundEvent",
+      "preferredLabel": "退款事件实例",
+      "aliases": ["退款事实"],
+      "definition": "一次已经发生且具有事件标识、地区和发生时间的退款业务事实。",
+      "boundedContext": "commerce",
+      "steward": "payments"
+    },
+    {
+      "id": "term.event-schema",
+      "canonicalName": "EventSchema",
+      "preferredLabel": "事件契约",
+      "aliases": ["事件 Schema"],
+      "definition": "定义一类事件字段和版本的契约；它与某一次事件实例是不同对象。",
+      "boundedContext": "engineering",
+      "steward": "event-governance"
+    },
+    {
+      "id": "term.code-symbol",
+      "canonicalName": "CodeSymbol",
+      "preferredLabel": "代码符号",
+      "aliases": ["源码符号"],
+      "definition": "在固定仓、提交和语义名称下解析出的函数、类或其他程序符号。",
+      "boundedContext": "engineering",
+      "steward": "developer-experience"
+    },
+    {
+      "id": "term.test",
+      "canonicalName": "Test",
+      "preferredLabel": "测试用例",
+      "aliases": ["回归测试"],
+      "definition": "在固定源码版本中具有稳定测试标识、可验证行为契约的测试。",
+      "boundedContext": "engineering",
+      "steward": "quality-engineering"
+    },
+    {
+      "id": "term.adr",
+      "canonicalName": "ADR",
+      "preferredLabel": "架构决策记录",
+      "aliases": ["架构决策"],
+      "definition": "记录架构选择、理由和适用版本的规范性决策文档。",
+      "boundedContext": "engineering",
+      "steward": "platform-architecture"
+    },
+    {
+      "id": "term.incident",
+      "canonicalName": "Incident",
+      "preferredLabel": "生产事故",
+      "aliases": ["运行事件"],
+      "definition": "由事故管理系统标识的一次运行异常；其诊断结论不自动成为长期事实。",
+      "boundedContext": "operations",
+      "steward": "sre"
+    }
+  ]
+}
