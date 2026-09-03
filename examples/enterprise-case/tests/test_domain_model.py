@@ -1,16 +1,20 @@
 import json
+import sys
 import unittest
 from datetime import datetime
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from modeling import compile_domain_model
 
 
 class DomainModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.model = json.loads((ROOT / "data" / "domain-model.json").read_text())
+        cls.model = compile_domain_model(ROOT / "data" / "modeling")
         cls.documents = json.loads((ROOT / "data" / "knowledge.json").read_text())
         cls.edges = json.loads((ROOT / "data" / "relations.json").read_text())
         cls.architecture_claims = json.loads(
@@ -29,11 +33,19 @@ class DomainModelTest(unittest.TestCase):
                 self.assertIn(relation["from"], declared)
                 self.assertIn(relation["to"], declared)
                 self.assertTrue(relation["allowedEvidence"])
+                self.assertTrue(relation["meaning"])
+                self.assertTrue(relation["positiveExample"])
+                self.assertTrue(relation["negativeExample"])
 
     def test_temporal_relations_are_explicit(self):
         self.assertTrue(self.model["relations"]["CALLS"]["temporal"])
         self.assertTrue(self.model["relations"]["GOVERNED_BY"]["temporal"])
         self.assertTrue(self.model["relations"]["GOVERNED_BY"]["constraints"])
+        for edge in self.edges:
+            if self.model["relations"][edge["type"]].get("temporal"):
+                with self.subTest(edge=edge):
+                    self.assertIn("valid_from", edge["time"])
+                    self.assertIn("observed_at", edge["time"])
 
     def test_every_relation_edge_conforms_to_declared_model(self):
         documents = {document["id"]: document for document in self.documents}

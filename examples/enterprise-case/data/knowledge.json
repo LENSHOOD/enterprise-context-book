@@ -113,6 +113,9 @@
     ],
     "version": "2026-08-10",
     "authority": "normative",
+    "attributes": {
+      "regions": ["EMEA"]
+    },
     "citation": "knowledge://northstar/policy/order-cancellation@2026-08-10",
     "text": "已付款且未发货的订单允许取消并自动退款。已进入出库阶段的订单需要人工审核，不能自动退款。",
     "version_id": "kv:sha256:a2e4f3ad2f6dd380",
@@ -412,6 +415,10 @@
     ],
     "version": "2026-08-22T08:30:00Z",
     "authority": "observed",
+    "attributes": {
+      "region": "EMEA",
+      "occurred_at": "2026-08-22T08:30:00Z"
+    },
     "citation": "runtime://northstar/refund-event/emea-1001@2026-08-22T08:30:00Z",
     "text": "该退款事件发生于 EMEA，时间为 2026-08-22T08:30:00Z，适用当时有效的订单取消政策。",
     "version_id": "kv:sha256:a7ed6e448075c683",
@@ -574,6 +581,9 @@
     "acl": ["developer", "sre", "product", "support"],
     "version": "2026-01-01",
     "authority": "superseded",
+    "attributes": {
+      "regions": ["EMEA"]
+    },
     "citation": "knowledge://northstar/policy/order-cancellation@2026-01-01",
     "text": "2026-01-01 至 2026-07-31 的旧规则允许已付款且进入出库阶段的订单由支持人员直接取消；该规则已被 2026-08-10 版本取代。",
     "version_id": "kv:sha256:26e9b908383aefaa",

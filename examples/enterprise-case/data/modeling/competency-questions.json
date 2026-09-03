@@ -1,0 +1,26 @@
+{
+  "format": "northstar-competency-questions/1",
+  "questions": [
+    {
+      "id": "CQ-IMPACT-001",
+      "question": "退款网关 API 变化会影响哪些服务、团队和运行手册？",
+      "decision": "确定 API 变更的评审人、通知对象和必须同步的运维材料。",
+      "requiredEntityTypes": ["API", "Service", "Repository", "Team", "Runbook"],
+      "requiredRelations": ["CALLS", "IMPLEMENTS", "ON_CALL_FOR", "DOCUMENTED_BY"]
+    },
+    {
+      "id": "CQ-EVENT-001",
+      "question": "order.cancelled 事件变化会影响哪些消费者和测试？",
+      "decision": "确定事件 Schema 变更的代码影响范围和最低回归测试集合。",
+      "requiredEntityTypes": ["EventSchema", "CodeSymbol", "Test"],
+      "requiredRelations": ["CONSUMED_BY", "TESTED_BY"]
+    },
+    {
+      "id": "CQ-POLICY-001",
+      "question": "一次退款事件在发生时适用哪份政策？",
+      "decision": "按事件发生时间和地区选择有效政策，而不是默认使用最新文档。",
+      "requiredEntityTypes": ["RefundEvent", "Policy"],
+      "requiredRelations": ["GOVERNED_BY"]
+    }
+  ]
+}
