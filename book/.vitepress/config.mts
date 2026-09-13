@@ -48,7 +48,7 @@ export default withMermaid(defineConfig({
           { text: '4. RAG：访问外部证据', link: '/part-2/chapter-04' },
           { text: '5. 混合检索', link: '/part-2/chapter-05' },
           { text: '6. 层级知识', link: '/part-2/chapter-06' },
-          { text: '7. Wiki：编译知识', link: '/part-2/chapter-07' },
+          { text: '7. Wiki：提前做好重复阅读', link: '/part-2/chapter-07' },
           { text: '8. 知识建模、本体与图谱', link: '/part-2/chapter-08' },
           { text: '9. 智能体记忆', link: '/part-2/chapter-09' }
         ]
@@ -57,10 +57,10 @@ export default withMermaid(defineConfig({
         text: '第三部分 平台架构与治理',
         collapsed: false,
         items: [
-          { text: '10. 上下文基础设施', link: '/part-3/chapter-10' },
-          { text: '11. 对象、版本与时间', link: '/part-3/chapter-11' },
-          { text: '12. 权限、安全与行动', link: '/part-3/chapter-12' },
-          { text: '13. 评测与运营', link: '/part-3/chapter-13' }
+          { text: '10. 把知识能力装成平台', link: '/part-3/chapter-10' },
+          { text: '11. 认对版本和时间', link: '/part-3/chapter-11' },
+          { text: '12. Agent 能看、记、改什么', link: '/part-3/chapter-12' },
+          { text: '13. 怎么知道系统真的有用', link: '/part-3/chapter-13' }
         ]
       },
       {
@@ -69,8 +69,8 @@ export default withMermaid(defineConfig({
         items: [
           { text: '14. 成品导览与构建路线', link: '/part-4/chapter-14' },
           { text: '15. 从来源到可信检索', link: '/part-4/chapter-15' },
-          { text: '16. 从企业语言到可导航知识', link: '/part-4/chapter-16' },
-          { text: '17. 从上下文到经验证行动', link: '/part-4/chapter-17' }
+          { text: '16. 按企业含义连接知识', link: '/part-4/chapter-16' },
+          { text: '17. 让 Agent 安全做完工作', link: '/part-4/chapter-17' }
         ]
       },
       {

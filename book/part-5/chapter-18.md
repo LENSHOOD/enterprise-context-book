@@ -1,6 +1,6 @@
-# 第 18 章 构建 Linux eBPF 知识库
+# 第 18 章 动手构建一个 Linux eBPF 知识库
 
-> 本章要回答：如何把企业上下文方法应用到真实规模、持续演化的 Linux 内核代码库？
+> 本章要回答：面对规模庞大、不断变化的 Linux 内核，前面介绍的知识库方法还能怎样落地？
 
 eBPF（extended Berkeley Packet Filter）是一种让受约束程序在 Linux 内核中运行的机制。用户态先把程序装载进内核；verifier 在执行前验证程序的控制流与内存访问，通过后程序可以被即时编译（JIT）并挂接到内核事件点（hook）。map 是 eBPF 程序之间以及程序与用户态之间共享数据的结构。理解“装载—验证—执行—挂接”和 map 这两条主线，就足以跟随本章；CO-RE、libbpf、BTF 与 Kconfig 会在需要时说明。[Linux BPF 文档](https://docs.kernel.org/bpf/)
 
@@ -22,7 +22,7 @@ git rev-parse HEAD
 
 示例以长期存在的稳定 tag `v6.12` 作为可复现基线；读者可以替换为更新版本，但必须生成新的 Snapshot Manifest 和测试期望。不要引用浮动的 `master`，否则路径、行号和机制会随提交变化。
 
-Manifest 记录远程仓库、tag、commit、配置、编译器、解析器、Tree-sitter grammar、BTF 产物和生成时间。源码引用使用：
+Snapshot Manifest 是这次实验的版本清单。它记录远程仓库、tag、commit、配置、编译器、解析器、Tree-sitter grammar、BTF 产物和生成时间。源码引用使用：
 
 ```text
 code://linux/kernel@<commit>/kernel/bpf/syscall.c#<symbol>
@@ -41,13 +41,13 @@ code://linux/kernel@<commit>/kernel/bpf/syscall.c#<symbol>
 - `Documentation/bpf/` 官方文档；
 - 自测目录 `tools/testing/selftests/bpf/`。
 
-不能简单递归摄取所有被 include 的文件，否则边界迅速扩展为全内核。系统维护“核心、必要依赖、外部引用”三种范围。核心对象完整解析和生成 Wiki；必要依赖保存相关符号；外部引用只建 stub 与回跳，按查询需要再扩展。
+不能沿着 `include` 一路递归读取所有文件，否则研究范围很快就会变成整个内核。系统把内容分成三类：“核心、必要依赖、外部引用”。核心对象完整解析并生成 Wiki；必要依赖只保存相关符号；超出当前范围的外部引用只建立 stub，也就是一个带身份和回跳地址的占位节点，等查询真正需要时再扩展。
 
 范围策略由验收问题驱动。研究程序加载需要 syscall、对象、verifier 与程序类型；研究 attach 需要链接和 hook；研究 CO-RE 需要 BTF 与 libbpf。一个新问题若持续需要外部模块，再通过显式配置扩大边界。
 
 ## 18.3 eBPF 领域对象模型
 
-这一节应用第 8 章的三层方法。概念层把“程序加载后经过验证并挂接到内核 hook”描述成领域机制；逻辑层定义 `ProgramType`、`VerifierPhase`、`AttachType` 等稳定类型及其关系契约；物理层才把它们投影成 SQLite 行、图节点、BM25 字段和 Wiki 页面。Tree-sitter 或 BTF 的输出是源映射，不是领域本体本身。
+这一节沿用第 8 章的三层方法。概念层用业务语言说明机制，例如“程序加载后先经过验证，再挂接到内核 hook”；逻辑层定义 `ProgramType`、`VerifierPhase`、`AttachType` 等稳定类型，以及它们允许建立的关系；物理层才决定怎样把这些内容真正保存成 SQLite 行、图节点、BM25 字段和 Wiki 页面。Tree-sitter 或 BTF 只负责从源码中提取信息，它们的输出不是领域本体本身。
 
 通用代码节点包括仓库、目录、文件、符号、类型、宏、配置和测试。eBPF 还需要领域节点：
 
@@ -82,7 +82,7 @@ Tree-sitter 适合快速、离线、跨版本地恢复语法结构，即使代�
 
 LSP 适合交互式定义、引用、类型和诊断，但通常依赖一个配置好的工作区进程。它可以成为精确导航工具，不应成为唯一持久索引。SCIP 之类协议可以把语言索引器生成的定义与引用持久化为语言无关数据，适合离线查询和跨仓关联。[SCIP](https://github.com/scip-code/scip)
 
-ArtifactFS 是这里对版本化源码工件层的抽象：按仓库和提交保存或访问不可变 blob，并提供路径、行和散列。它不必是特定产品，可以由本地 Git 对象库、对象存储或源码归档实现。最终证据来自 ArtifactFS，而不是 LSP 进程或模型摘要。
+ArtifactFS 是本书给“固定版本源码存放处”起的通用名字。它按仓库和提交保存或访问不可变的源码 blob，并提供路径、行号和散列。它不指某个特定产品，可以由本地 Git 对象库、对象存储或源码归档实现。最终证据来自这里保存的源码，而不是某个正在运行的 LSP 进程或模型摘要。
 
 组合关系是：Tree-sitter 提供广覆盖候选，编译器/SCIP/BTF 提高确定性，LSP 支持在线探索，ArtifactFS 保留事实。任何单一工具都无法承担全部职责。
 
@@ -138,7 +138,7 @@ python3 -m unittest discover -s tests -v
 
 这些命令需要本地已有 Linux checkout；仓库自带 `fixtures/linux/` 只用于解析器单元测试，不足以复现完整子系统图。
 
-首版实现可以只依赖 Git、Python 与可选 Tree-sitter；没有 clang/BTF 时生成 `syntax-only` 快照，查询明确显示精度降级。启用编译产物后生成 `compiled` 快照，并运行两者差异报告。
+首版实现可以只依赖 Git、Python 与可选 Tree-sitter。没有 clang/BTF 时，系统生成 `syntax-only` 快照，表示关系只根据语法推测，尚未经过完整编译信息确认；查询结果必须明确显示这种精度下降。启用编译产物后再生成 `compiled` 快照，并比较两者差异。
 
 输出目录只保存可重建索引和 Wiki，不提交 Linux 源码。测试使用几份兼容许可证的小型 fixture 验证解析器，真实集成测试在用户本地 Linux checkout 上运行。
 
@@ -170,7 +170,7 @@ python3 -m unittest discover -s tests -v
 
 ## 本章小结
 
-Linux eBPF 案例把代码知识库的二维设计落到真实源码：横向组合 BM25、摘要向量与关系图，纵向从子系统逐层下钻到版本化源码。Tree-sitter 提供广覆盖候选，编译信息、SCIP 与 BTF提高确定性，LSP 服务交互，ArtifactFS 保存最终证据。领域对象、配置条件和误差报告防止图谱伪装成完整真相。按固定 tag、可重建 Manifest 和验收问题实施后，这套方法可以逐步扩展到完整 Linux 内核。
+Linux eBPF 案例把代码知识库的两条检索路线放到真实源码上验证：横向同时使用 BM25、摘要向量和关系图，纵向则从子系统、机制和模块逐层深入，直到固定版本的源码。Tree-sitter 提供广覆盖候选，编译信息、SCIP 与 BTF 提高确定性，LSP 服务交互，ArtifactFS 保存最终证据。领域对象、配置条件和误差报告防止图谱伪装成完整真相。按固定 tag、可重建 Manifest 和验收问题实施后，这套方法可以逐步扩展到完整 Linux 内核。
 
 本书进一步对完整 Linux `v6.12` 执行了全仓 SQLite 建模与六组跨子系统查询，参见[番外：为完整 Linux 内核建立代码知识库](/extras/full-linux-kernel)。
 
