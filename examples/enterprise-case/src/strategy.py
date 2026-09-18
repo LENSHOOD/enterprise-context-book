@@ -87,6 +87,9 @@ class StrategicContext:
                 for field in ("supports", "capabilities"):
                     if any(self.types.get(ref) != "business_capabilities" for ref in item.get(field, [])):
                         raise ValueError(f"invalid {field} reference")
+        source_data_product = self.by_id[metric["source_data_product"]]
+        if not isinstance(source_data_product.get("snapshots"), list):
+            raise ValueError("source data product snapshots are required")
         objective = self.data["strategic_objectives"][0]
         if (objective["unit"] != metric["unit"]
                 or objective["target_period"] != PERIODS[1]
@@ -110,6 +113,17 @@ class StrategicContext:
             for dimension, value in scope.items():
                 if self.types.get(value) != DIMENSION_BUCKETS[dimension]:
                     raise ValueError("observation scope must reference a governed dimension object")
+            source = observation.get("source", "")
+            source_product, separator, source_version = source.partition("@")
+            if (not separator or source_product != metric["source_data_product"]
+                    or source not in source_data_product["snapshots"]):
+                raise ValueError("observation source must reference a registered data snapshot")
+            try:
+                source_time = datetime.fromisoformat(source_version)
+            except ValueError as exc:
+                raise ValueError("observation source version must be a date") from exc
+            if source_time > datetime.fromisoformat(fixture["as_of"].replace("Z", "+00:00")).replace(tzinfo=None):
+                raise ValueError("observation source is newer than fixture snapshot")
             if type(observation["value"]) not in (int, float) or not math.isfinite(observation["value"]):
                 raise ValueError("observation must be a finite number")
         self._period_pair({})
@@ -168,6 +182,23 @@ class StrategicContext:
         return ("h1" in normalized and "h2" in normalized
                 and any(term in normalized for term in ("销售", "sales", "bookings", "订单")))
 
+    @staticmethod
+    def _question_scope(question: str) -> dict:
+        normalized = question.casefold()
+        matches = {}
+        for dimension, terms in {
+            "region": (("emea", "region-emea"), ("other region", "region-other")),
+            "product": (("home & living", "product-home"), ("consumer electronics", "product-electronics")),
+            "segment": (("enterprise", "segment-enterprise"), ("consumer", "segment-consumer")),
+            "channel": (("direct", "channel-direct"), ("partner", "channel-partner")),
+        }.items():
+            found = [value for term, value in terms if term in normalized]
+            if len(found) == 1:
+                matches[dimension] = found[0]
+            elif len(found) > 1:
+                matches[dimension] = "ambiguous"
+        return matches
+
     def _view(self, label: str, scope: dict) -> dict:
         h1, h2 = self._period_pair(scope)
         delta = h2["value"] - h1["value"]
@@ -182,6 +213,7 @@ class StrategicContext:
             "change_rate": round(delta / h1["value"], 4) if h1["value"] else None,
             "rate_note": None if h1["value"] else "基期为零，变化率未定义",
             "evidence": [h1["evidence"], h2["evidence"]],
+            "sources": [h1["source"], h2["source"]],
         }
 
     def package(self, question: str, principal: dict, *, confirmation: dict | None = None) -> dict:
@@ -202,8 +234,11 @@ class StrategicContext:
                                         "next_step": "由经营责任人人工复核；不更改目标、定价或销售策略"},
         }
         missing = []
+        requested_scope = self._question_scope(question)
         if not self._question_is_supported(question):
             missing.append("本教学切片只支持 H1/H2 销售订单额问题；请改用已定义的战略能力问题。")
+        if requested_scope != expected_confirmation["scope"]:
+            missing.append("问题包含区域、产品、客群或渠道范围；当前确认契约只覆盖全公司，不能用全公司快照代替该范围。")
         if confirmation is None:
             missing.append("请确认指标、自然年半年度、全公司范围、实际场景和固定教学快照。")
         elif not confirmed:

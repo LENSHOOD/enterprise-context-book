@@ -55,8 +55,15 @@ def compile_documents(manifest_path: Path = RAW_ROOT / "manifest.json") -> list[
     if manifest.get("format") != "northstar-raw-fixture/1":
         raise ValueError("unsupported raw fixture manifest")
 
+    sources = manifest.get("sources", [])
+    source_ids = [item.get("id") for item in sources]
+    if any(not isinstance(source_id, str) or not source_id.strip() for source_id in source_ids):
+        raise ValueError("raw source id is required")
+    if len(source_ids) != len(set(source_ids)):
+        raise ValueError("duplicate raw source identity")
+
     documents = []
-    for item in manifest["sources"]:
+    for item in sources:
         raw_root = manifest_path.parent.resolve()
         source_path = (raw_root / item["path"]).resolve()
         if Path(item["path"]).is_absolute() or raw_root not in source_path.parents:

@@ -106,6 +106,14 @@ class SourceSecurityTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source ACL"):
             compile_knowledge(self.data)
 
+    def test_duplicate_raw_source_ids_are_rejected(self):
+        duplicate = deepcopy(self.manifest["sources"][0])
+        duplicate["path"] = self.manifest["sources"][1]["path"]
+        self.manifest["sources"].append(duplicate)
+        self.write_json(self.manifest_path, self.manifest)
+        with self.assertRaisesRegex(ValueError, "duplicate raw source identity"):
+            compile_documents(self.manifest_path)
+
     def test_authored_and_supplemental_string_acls_are_rejected(self):
         raw_ids = {item["id"] for item in self.manifest["sources"]}
         supplemental = next(doc for doc in self.documents if doc["id"] not in raw_ids)
