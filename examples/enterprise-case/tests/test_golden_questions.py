@@ -18,10 +18,10 @@ class GoldenQuestionTest(unittest.TestCase):
     def setUpClass(cls):
         cls.questions = json.loads((ROOT / "data" / "golden-questions.json").read_text())
 
-    def test_dataset_has_24_unique_questions_and_required_buckets(self):
-        self.assertEqual(24, len(self.questions))
-        self.assertEqual(24, len({item["id"] for item in self.questions}))
-        self.assertGreaterEqual(len({item["bucket"] for item in self.questions}), 9)
+    def test_dataset_has_27_unique_questions_and_required_buckets(self):
+        self.assertEqual(27, len(self.questions))
+        self.assertEqual(27, len({item["id"] for item in self.questions}))
+        self.assertGreaterEqual(len({item["bucket"] for item in self.questions}), 10)
 
     def test_every_golden_question_satisfies_its_contract(self):
         for item in self.questions:
@@ -30,7 +30,11 @@ class GoldenQuestionTest(unittest.TestCase):
                 principal = MODULE.Principal(item["id"], item["role"])
                 mode = item["mode"]
                 if mode in {"search", "search_any", "visibility"}:
-                    ids = {hit["id"] for hit in platform.search(item["question"], principal, limit=12)}
+                    ids = {hit["id"] for hit in platform.search(
+                        item["question"], principal, limit=12,
+                        valid_at=item.get("valid_at"),
+                        observed_at=item.get("observed_at"),
+                    )}
                     if mode == "search":
                         self.assertTrue(set(item["expected_ids"]).issubset(ids))
                     elif mode == "search_any":
@@ -68,6 +72,22 @@ class GoldenQuestionTest(unittest.TestCase):
                     self.assertIn(item["expected_tool"], platform.allowed_tools(principal, item["id"]))
                     preview = platform.prepare_replay(item["id"], "refund-queue", principal)
                     self.assertGreater(preview["message_count"], 0)
+                elif mode == "strategy_clarification":
+                    package = platform.context(
+                        item["question"], principal, item["id"], mode="strategic"
+                    )
+                    self.assertEqual(item["expected_status"], package["status"])
+                elif mode == "strategy_analysis":
+                    package = platform.context(
+                        item["question"], principal, item["id"], mode="strategic",
+                        definition_confirmation=platform.strategy_context.definition_confirmation(),
+                    )
+                    self.assertEqual(item["expected_status"], package["status"])
+                    self.assertEqual(item["expected_h2"], package["performance"]["total"]["h2"])
+                    self.assertTrue(package["agent_execution_context"]["read_only"])
+                elif mode == "strategy_permission":
+                    with self.assertRaises(PermissionError):
+                        platform.context(item["question"], principal, item["id"], mode="strategic")
                 else:
                     self.fail(f"unsupported mode: {mode}")
 

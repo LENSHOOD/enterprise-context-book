@@ -19,6 +19,7 @@ class NorthstarPlatformTest(unittest.TestCase):
         self.platform = MODULE.NorthstarPlatform()
         self.developer = MODULE.Principal("dev", "developer")
         self.support = MODULE.Principal("agent", "support")
+        self.sre = MODULE.Principal("sre", "sre")
 
     def test_hybrid_search_returns_versioned_evidence(self):
         hits = self.platform.search("取消事件有哪些 consumer 影响", self.developer)
@@ -48,9 +49,11 @@ class NorthstarPlatformTest(unittest.TestCase):
         self.assertFalse(any(item.startswith("code://") for item in all_inputs))
 
     def test_task_memory_is_isolated(self):
-        self.platform.memory.append("INC-1", {"type": "checked", "value": "queue"})
-        self.assertEqual(1, len(self.platform.memory.read("INC-1")))
-        self.assertEqual([], self.platform.memory.read("INC-2"))
+        self.platform.begin_diagnosis("INC-1", self.sre)
+        self.assertEqual(1, len(self.platform.memory.read("INC-1", self.sre)))
+        other_tenant = MODULE.Principal("other", "sre", "other")
+        self.assertEqual([], self.platform.memory.read("INC-1", other_tenant))
+        self.assertEqual([], self.platform.memory.read("INC-2", self.sre))
 
     def test_runtime_observation_requires_role_and_tenant(self):
         commander = MODULE.Principal("ic", "incident_commander")

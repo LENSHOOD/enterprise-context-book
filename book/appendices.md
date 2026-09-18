@@ -43,6 +43,9 @@
 **Runbook**：供运维或业务处置使用的运行手册，包含症状、检查、动作和验证；首次展开见第 1 章。<br>
 **知识候选（Knowledge Candidate）**：尚未通过审核、不能直接晋升为组织知识的经验或声明；见第 9 章。  
 **任务记忆主体（Task-memory Subject）**：限定记忆归属、读写权限和生命周期的任务标识；见第 9、17 章。  
+**程序性知识（Procedural Knowledge）**：描述完成一类工作的步骤、条件、参数和验证方式；见第 3、17 章。<br>
+**Agent Skill**：按需加载的程序性知识工作包，通常包含 `SKILL.md` 以及可选脚本、参考资料和模板；它不自动授予工具权限；见第 3 章。
+**Context Graph**：把对象、关系、状态变化、来源和任务相关性组织在一起的动态上下文实现模式；不是一个统一的行业标准名称；见第 8、10 章。
 **Tombstone**：不保留原文的删除标记，用来防止迟到事件恢复已撤销对象，并推动各类索引和派生内容一起删除；见第 11 章。
 
 进一步的论文、项目与官方资料参见[研究索引](/research-notes)。
@@ -53,6 +56,14 @@
 - 层级检索：[RAPTOR](https://arxiv.org/abs/2401.18059)
 - 图谱检索：[GraphRAG](https://arxiv.org/abs/2404.16130)
 - Agent 记忆：[Mem0](https://arxiv.org/abs/2504.19413)
+- Agent 记忆综述：[Memory in the Age of AI Agents](https://arxiv.org/abs/2512.13564)
+- 长期记忆安全：[A Survey on Long-Term Memory Security in LLM Agents](https://arxiv.org/html/2604.16548v2)
+- 上下文工程：[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- 程序性知识：[Agent Skills](https://agentskills.io/)
+- 企业知识上下文：[Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-foundry-iq)
+- 企业工作图：[Atlassian Teamwork Graph](https://www.atlassian.com/platform/teamwork-graph)
+- 软件生命周期图：[GitLab Orbit Knowledge Graph](https://github.com/gitlabhq/orbit-knowledge-graph)
+- 端到端 RAG 评测：[MLPerf End-to-End RAG](https://mlcommons.org/2026/08/endtoend-inference/)
 - RAG 评测：[RAGAS](https://arxiv.org/abs/2309.15217)
 - 代码 Wiki：[CodeWiki](https://aclanthology.org/2026.findings-acl.288/)
 - 代码语义索引：[SCIP](https://github.com/scip-code/scip)
@@ -67,18 +78,18 @@
 
 | 能力 | 基线 | 规模化替代条件 |
 |---|---|---|
-| 元数据 | PostgreSQL | 按租户/时间分区 |
-| 词法检索 | PostgreSQL FTS | 复杂代码搜索或高 QPS 时使用搜索引擎 |
-| 向量 | pgvector | 向量规模和延迟证明需要专用服务 |
-| 图 | 关系表/NetworkX | 多跳规模和延迟证明需要图数据库 |
-| 源码 | Git partial clone | 大仓 Blob 供给成为瓶颈时按需文件系统 |
+| 元数据 | 教学 JSON/内存对象 | 生产按租户/时间分区的 PostgreSQL |
+| 词法检索 | Python 标准库 BM25 | 复杂代码搜索或高 QPS 时使用搜索引擎 |
+| 向量 | Northstar 离线语义代理 | 生产用 pgvector 或专用向量服务，并重新评测 |
+| 图 | JSON 关系与确定性遍历 | 多跳规模和延迟证明需要图数据库 |
+| 源码 | Git fixture/blob 读取 | 大仓 Blob 供给成为瓶颈时使用 ArtifactFS 或按需文件系统 |
 | 语义 | Tree-sitter | 重点语言增加 SCIP/编译器索引 |
 
 ## D. 评测资产与发布检查
 
 ### D.1 Golden Question Schema
 
-每条题目至少包含 `id`、`bucket`、`question`、`role`、`mode`、必要证据 `expected_ids` 或禁止证据 `forbidden_ids`。生产题集还应记录 `difficulty`、`expected_refusal`、`expected_conflict`、`annotator`、`annotated_at` 和 `snapshot`。Northstar 的 24 条教学样本位于 `examples/enterprise-case/data/golden-questions.json`。
+每条题目至少包含 `id`、`bucket`、`question`、`role`、`mode`、必要证据 `expected_ids` 或禁止证据 `forbidden_ids`。生产题集还应记录 `difficulty`、`expected_refusal`、`expected_conflict`、`annotator`、`annotated_at` 和 `snapshot`。Northstar 的 27 条教学样本位于 `examples/enterprise-case/data/golden-questions.json`。
 
 ### D.2 答案评分 Rubric
 
@@ -97,7 +108,7 @@
 
 ### D.4 发布检查表
 
-勾选状态是当前候选的可复核状态；发布裁决以 `reviews/run_manifest.json` 为唯一事实源。
+勾选状态记录的是附录维护时的候选检查；`reviews/run_manifest.json` 是 2026-08-30 的历史审计，当前发布裁决应以对应提交、CI 运行和最新复核记录为准。
 
 - [ ] 字数达到宪章目标——运行 `python3 scripts/wordcount.py`；
 - [ ] 外部事实和集中参考文献完成声明级核验——人工审计并记录日期；
@@ -105,7 +116,7 @@
 - [x] Northstar 与 Linux fixture 测试通过——运行两个案例目录的 `unittest discover`；
 - [x] ACL、跨租户、提示注入和写动作边界测试存在——见 `test_northstar.py` 与 `test_action_boundary.py`；
 - [x] 领域模型约束实例数据——见 `test_domain_model.py`；
-- [x] 24 条教学 Golden Questions 可执行——见 `test_golden_questions.py`；
+- [x] 27 条教学 Golden Questions 可执行——见 `test_golden_questions.py`；
 - [ ] 浏览器桌面与移动 QA 重新完成——需要发布候选构建后的人工记录；
 - [x] AI 使用与事实核验方法公开——见附录 E、F；
 - [x] 正文和代码使用完整许可文本——见根目录 `LICENSE` 与 `LICENSE-CODE`。

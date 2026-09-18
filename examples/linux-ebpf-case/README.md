@@ -7,7 +7,7 @@
 ```bash
 cd examples/linux-ebpf-case
 python3 -m linux_kb ingest \
-  --repo fixtures/linux --ref fixture-v1 --output generated \
+  --repo fixtures/linux --ref fixture-v1 --fixture --output generated \
   --scope 'kernel/bpf/*.c' \
   --scope 'include/uapi/linux/bpf.h' \
   --scope 'Documentation/bpf/*.rst'
@@ -24,7 +24,9 @@ git -C linux checkout v6.12
 python3 -m linux_kb ingest --repo linux --ref v6.12 --output generated-v6.12
 ```
 
-输出包括 `manifest.json`、`nodes.json`、`edges.json`、`unresolved.json` 和 `wiki.md`。完整工程可将提取器替换为 Tree-sitter、clang/SCIP 和 BTF 适配器；Manifest 的 `mode` 必须随精度升级，调用边仍保留证据等级。
+输出包括 `manifest.json`、`nodes.json`、`edges.json`、`unresolved.json` 和 `wiki.md`。完整工程可将提取器替换为 Tree-sitter、clang/SCIP 和 BTF 适配器；Manifest 的 `mode` 必须随精度升级，调用边仍保留证据等级。内置 fixture 没有 Git 历史，必须显式使用 `--fixture`；真实 Git 仓库则必须解析 `--ref`，不会回退为 fixture 身份。
+
+Git 仓库输入会从 `--ref` 指定的提交读取文件树，并把该提交写入每条引用；不存在的仓库或 ref 会直接失败。无 Git 的内置 fixture 才使用 `fixture:<ref>` 身份。类型节点的 ID 包含路径和行号，避免不同文件中的同名类型被合并。
 
 本书发布候选已对真实 Linux `v6.12` 执行上述流程。固定提交、规模和误差水位参见 `INTEGRATION_REPORT.md`。
 
