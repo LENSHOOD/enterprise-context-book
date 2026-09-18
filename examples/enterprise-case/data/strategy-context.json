@@ -257,6 +257,7 @@
       "system": "app-sales-dwh",
       "refresh": "daily",
       "quality_owner": "org-revops",
+      "snapshots": ["data-sales-facts@2026-07-01", "data-sales-facts@2027-01-01"],
       "evidence": "fixture://northstar/strategy-context@1#/data_products/0"
     },
     {
@@ -265,6 +266,7 @@
       "system": "app-crm",
       "refresh": "hourly",
       "quality_owner": "org-revops",
+      "snapshots": [],
       "evidence": "fixture://northstar/strategy-context@1#/data_products/1"
     }
   ],
