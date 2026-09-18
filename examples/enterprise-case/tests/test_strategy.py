@@ -113,6 +113,21 @@ class StrategyContextTest(unittest.TestCase):
         self.assertEqual("needs_clarification", package["status"])
         self.assertNotIn("performance", package)
 
+    def test_question_scope_cannot_be_smuggled_into_a_company_confirmation(self):
+        package = self.context.package(
+            "H2 EMEA sales vs H1",
+            {"user_id":"executive-demo", "role":"executive", "tenant":"northstar"},
+            confirmation=self.confirmation,
+        )
+        self.assertEqual("needs_clarification", package["status"])
+        self.assertNotIn("performance", package)
+
+    def test_unregistered_observation_source_is_rejected(self):
+        def mutate(data):
+            data["observations"][0]["source"] = "untrusted-dataset@999"
+
+        self._assert_invalid_fixture(mutate, "registered data snapshot")
+
     def test_decomposition_is_evidence_backed_but_not_causal(self):
         package = self.context.package(
             "H1 H2 sales",
