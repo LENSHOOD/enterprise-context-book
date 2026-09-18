@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import math
 import re
-import subprocess
 from collections import Counter, defaultdict, deque
 from pathlib import Path
+from .source_tree import SourceTree, matches_scope
 
 
 FUNCTION_RE = re.compile(
@@ -21,25 +21,9 @@ FUNCTION_RE = re.compile(
 )
 CALL_RE = re.compile(r"\b([A-Za-z_]\w*)\s*\(")
 ENUM_ITEM_RE = re.compile(r"(?m)^\s*(BPF_[A-Z0-9_]+)\s*(?:=|,)")
-TYPE_RE = re.compile(r"(?m)^\s*(?:struct|enum)\s+([A-Za-z_]\w*)")
+TYPE_RE = re.compile(r"(?m)^[\t ]*(?:struct|enum)\s+([A-Za-z_]\w*)[^;\n]*\{")
 TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*|[\u4e00-\u9fff]")
 CONTROL_WORDS = {"if", "for", "while", "switch", "return", "sizeof", "defined"}
-
-
-def _git(repo: Path, *args: str) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, text=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
-    return result.stdout.strip()
-
-
-def _commit(repo: Path, ref: str) -> str:
-    try:
-        return _git(repo, "rev-parse", f"{ref}^{{commit}}")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        # Fixtures need no git repository; their digest-like identity remains explicit.
-        return f"fixture:{ref}"
 
 
 def _line(text: str, offset: int) -> int:
@@ -49,6 +33,8 @@ def _line(text: str, offset: int) -> int:
 def _function_spans(text: str) -> list[tuple[str, int, int, str]]:
     spans = []
     for match in FUNCTION_RE.finditer(text):
+        if match.group('name') in CONTROL_WORDS:
+            continue
         depth, index = 1, match.end()
         while index < len(text) and depth:
             if text[index] == "{":
@@ -64,51 +50,56 @@ def _citation(commit: str, relative: str, symbol: str, line: int) -> str:
     return f"code://linux/kernel@{commit}/{relative}#{symbol}:L{line}"
 
 
-def ingest(repo: Path, ref: str, output: Path, scope: list[str]) -> dict:
-    repo, output = repo.resolve(), output.resolve()
-    commit = _commit(repo, ref)
-    files: list[Path] = []
-    for pattern in scope:
-        files.extend(path for path in repo.glob(pattern) if path.is_file())
-    files = sorted(set(files))
+def ingest(repo: Path, ref: str, output: Path, scope: list[str], *, fixture: bool = False) -> dict:
+    with SourceTree(repo, ref, fixture) as source:
+        return _ingest(source, ref, output.resolve(), scope)
+
+
+def _ingest(source: SourceTree, ref: str, output: Path, scope: list[str]) -> dict:
+    repo, commit = source.repo, source.commit
+    files = sorted(path for path in source.blobs
+                   if Path(path).suffix in {".c", ".h", ".md", ".rst"}
+                   and any(matches_scope(path, pattern) for pattern in scope))
+    if not files:
+        raise ValueError("scope contains no supported source files")
     nodes, edges, unresolved = [], [], []
     definitions: dict[str, list[str]] = defaultdict(list)
 
-    for path in files:
-        relative = path.relative_to(repo).as_posix()
-        if path.suffix not in {".c", ".h", ".md", ".rst"}:
+    for relative in files:
+        suffix = Path(relative).suffix
+        if suffix not in {".c", ".h", ".md", ".rst"}:
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = source.read(relative)
         file_id = f"file:{relative}"
         nodes.append({
-            "id": file_id, "kind": "file", "name": path.name, "path": relative,
+            "id": file_id, "kind": "file", "name": Path(relative).name, "path": relative,
             "text": text[:4000], "citation": _citation(commit, relative, "file", 1),
         })
-        if path.suffix in {".md", ".rst"}:
+        if suffix in {".md", ".rst"}:
             continue
-        for type_name in TYPE_RE.findall(text):
-            node_id = f"type:{type_name}"
-            line = _line(text, text.find(type_name))
+        for type_match in TYPE_RE.finditer(text):
+            type_name = type_match.group(1)
+            line = _line(text, type_match.start(1))
+            node_id = f"type:{relative}#{type_name}:L{line}"
             nodes.append({
                 "id": node_id, "kind": "type", "name": type_name, "path": relative,
                 "text": f"type {type_name} defined in {relative}",
                 "citation": _citation(commit, relative, type_name, line),
             })
-            definitions[type_name].append(node_id)
             edges.append({"from": file_id, "type": "DEFINES", "to": node_id, "certainty": "syntax"})
-        for command in ENUM_ITEM_RE.findall(text):
-            node_id = f"command:{command}"
-            line = _line(text, text.find(command))
+        for command_match in ENUM_ITEM_RE.finditer(text):
+            command = command_match.group(1)
+            line = _line(text, command_match.start(1))
+            node_id = f"command:{relative}#{command}:L{line}"
             nodes.append({
                 "id": node_id, "kind": "syscall_command", "name": command, "path": relative,
                 "text": f"eBPF syscall command {command}",
                 "citation": _citation(commit, relative, command, line),
             })
-            definitions[command].append(node_id)
             edges.append({"from": file_id, "type": "DEFINES", "to": node_id, "certainty": "syntax"})
         for name, start, end, body in _function_spans(text):
-            node_id = f"symbol:{relative}#{name}"
             line = _line(text, start)
+            node_id = f"symbol:{relative}#{name}:L{line}"
             nodes.append({
                 "id": node_id, "kind": "function", "name": name, "path": relative,
                 "text": text[start:min(end, start + 1500)],
@@ -139,11 +130,12 @@ def ingest(repo: Path, ref: str, output: Path, scope: list[str]) -> dict:
             })
         edge.pop("to_name")
 
-    # Deduplicate repeated type/command nodes while preserving deterministic order.
+    # Deduplicate repeated command nodes while preserving deterministic order.
     unique_nodes = {node["id"]: node for node in nodes}
     manifest = {
-        "schema": "linux-kb-snapshot@1", "repository": str(repo), "ref": ref,
+        "schema": "linux-kb-snapshot@2", "repository": str(repo), "ref": ref,
         "commit": commit, "mode": "syntax-only", "scope": scope,
+        "source_mode": "fixture" if source.fixture else "git-blobs",
         "counts": {"files": len(files), "nodes": len(unique_nodes), "edges": len(edges), "unresolved": len(unresolved)},
     }
     output.mkdir(parents=True, exist_ok=True)

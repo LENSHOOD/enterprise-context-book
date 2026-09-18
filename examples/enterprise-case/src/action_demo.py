@@ -26,7 +26,7 @@ def main() -> None:
         "confirmation_token": token[:12] + "…",
         "receipt": receipt,
         "verification": verification,
-        "task_state": platform.task_states["INC-DEMO"],
+        "task_state": platform.task_state("INC-DEMO", sre),
     }, ensure_ascii=False, indent=2))
 
 

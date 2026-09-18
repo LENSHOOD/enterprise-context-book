@@ -4,7 +4,15 @@
 
 eBPF（extended Berkeley Packet Filter）是一种让受约束程序在 Linux 内核中运行的机制。用户态先把程序装载进内核；verifier 在执行前验证程序的控制流与内存访问，通过后程序可以被即时编译（JIT）并挂接到内核事件点（hook）。map 是 eBPF 程序之间以及程序与用户态之间共享数据的结构。理解“装载—验证—执行—挂接”和 map 这两条主线，就足以跟随本章；CO-RE、libbpf、BTF 与 Kconfig 会在需要时说明。[Linux BPF 文档](https://docs.kernel.org/bpf/)
 
-Northstar 证明了企业上下文的完整生命周期，Linux 内核则检验代码知识库能否面对真实规模、宏、条件编译、函数指针、跨目录调用和长期演化。本章选择 eBPF 子系统作为第一块范围：它拥有清晰的用户态入口、复杂的 verifier、丰富的 map 与程序类型、BTF 结构信息以及大量官方文档，适合同时演示文本、代码、图和层级 Wiki。
+Northstar 演示了企业上下文的一条最小任务链，Linux 内核则检验代码知识库能否面对真实规模、宏、条件编译、函数指针、跨目录调用和长期演化。本章选择 eBPF 子系统作为第一块范围：它拥有清晰的用户态入口、复杂的 verifier、丰富的 map 与程序类型、BTF 结构信息以及大量官方文档，适合同时演示文本、代码、图和层级 Wiki。当前示例交付的能力如下；后面的领域建模和高精度路线属于设计目标，不能从命令运行成功推断它们都已实现。
+
+| 能力 | 当前代码 | 后续路线 |
+|---|---|---|
+| 固定源码 | 从 Git ref 对应的 blob 读取，工作树变化不影响输入 | 跨版本逻辑符号映射 |
+| 解析与图 | 正则候选、作用域 ID、定义坐标、候选调用 | Tree-sitter、SCIP、编译配置与 BTF |
+| 查询 | BM25/FTS5 命中加有界出边 | 向量、机制路径规划、重排 |
+| Wiki | 按文件列出符号与引用 | 机制级解释、多级摘要、增量更新 |
+| 验证 | 小仓反例与真实 v6.12 摄取、查询 | 编译、selftests、运行路径与准确率标注 |
 
 目标不是让模型“读懂整个 Linux”，也不是生成一套替代内核文档的解释。第一版要建立一个作者可长期使用的研究工具：固定上游版本，回答一组机制问题，所有结论回到源码或官方文档，并明确静态解析无法证明的关系。
 
@@ -22,13 +30,13 @@ git rev-parse HEAD
 
 示例以长期存在的稳定 tag `v6.12` 作为可复现基线；读者可以替换为更新版本，但必须生成新的 Snapshot Manifest 和测试期望。不要引用浮动的 `master`，否则路径、行号和机制会随提交变化。
 
-Snapshot Manifest 是这次实验的版本清单。它记录远程仓库、tag、commit、配置、编译器、解析器、Tree-sitter grammar、BTF 产物和生成时间。源码引用使用：
+Snapshot Manifest 是这次实验的版本清单。当前实现记录仓库、ref、commit、source_mode、syntax-only 模式、范围和数量；未来接入编译器、Tree-sitter 或 BTF 时，还应记录配置、工具和产物版本。源码引用使用：
 
 ```text
 code://linux/kernel@<commit>/kernel/bpf/syscall.c#<symbol>
 ```
 
-显示层可将它渲染为上游网页链接与行区间；内部证据仍绑定提交和内容散列。若同一符号在新 tag 中变化，逻辑 ID 保持，版本 ID 更新。
+显示层可将它渲染为上游网页链接与行区间。当前符号 ID 含路径与定义行，证据 URI 固定到提交；代码尚未实现跨版本符号身份映射，行移动后不能直接比较 ID 判断同一性。案例工具从请求的 Git ref 读取树中的文件，而不是把当前工作树内容贴上旧 ref 的标签；不存在的仓库或 ref 会直接报错。
 
 ## 18.2 划定子系统边界
 
@@ -45,7 +53,9 @@ code://linux/kernel@<commit>/kernel/bpf/syscall.c#<symbol>
 
 范围策略由验收问题驱动。研究程序加载需要 syscall、对象、verifier 与程序类型；研究 attach 需要链接和 hook；研究 CO-RE 需要 BTF 与 libbpf。一个新问题若持续需要外部模块，再通过显式配置扩大边界。
 
-## 18.3 eBPF 领域对象模型
+## 18.3 从通用代码图扩展到 eBPF 领域模型
+
+本节是领域扩展设计。当前程序只有 file、function、type、syscall_command 等候选，不会自动构建下列所有机制实体。
 
 这一节沿用第 8 章的三层方法。概念层用业务语言说明机制，例如“程序加载后先经过验证，再挂接到内核 hook”；逻辑层定义 `ProgramType`、`VerifierPhase`、`AttachType` 等稳定类型，以及它们允许建立的关系；物理层才决定怎样把这些内容真正保存成 SQLite 行、图节点、BM25 字段和 Wiki 页面。Tree-sitter 或 BTF 只负责从源码中提取信息，它们的输出不是领域本体本身。
 
@@ -66,7 +76,9 @@ code://linux/kernel@<commit>/kernel/bpf/syscall.c#<symbol>
 
 节点与边都保留编译配置。例如某调用或类型只在 `CONFIG_BPF_SYSCALL` 下存在，引用必须说明条件。Linux 并不存在唯一调用图；不同架构与 Kconfig 产生不同可达代码。
 
-## 18.4 采集流水线
+## 18.4 提高精度需要怎样的流水线
+
+当前实现是 Git 对象读取加正则基线。以下步骤说明替换解析器后的目标路线，并非命令里隐藏着 Tree-sitter 或编译器。
 
 第一步扫描 Git 树并为文件建立版本对象。第二步用 Tree-sitter C 解析语法树，抽取函数定义、声明、结构体、枚举、宏引用、include 和语法调用。Tree-sitter 支持增量解析并可为多种语言提供具体语法树，适合构建跨语言候选结构。[Tree-sitter](https://tree-sitter.github.io/tree-sitter/)
 
@@ -86,7 +98,9 @@ ArtifactFS 是本书给“固定版本源码存放处”起的通用名字。它
 
 组合关系是：Tree-sitter 提供广覆盖候选，编译器/SCIP/BTF 提高确定性，LSP 支持在线探索，ArtifactFS 保留事实。任何单一工具都无法承担全部职责。
 
-## 18.6 建立 eBPF 图
+## 18.6 从检索入口走向机制图
+
+当前查询能返回 BPF_PROG_LOAD 的枚举坐标 L928，并命中 bpf_prog_load；从函数候选可继续看到 bpf_check 的名称解析边。命令节点本身尚无 DISPATCHES_TO 边。要获得下面的完整机制路径，还需要增加分派、配置和测试适配器。
 
 `bpf()` 系统调用分派是第一条验收路径。系统从 UAPI 中的 `enum bpf_cmd` 建立命令节点，从 `kernel/bpf/syscall.c` 抽取分派与处理函数，把 `BPF_PROG_LOAD` 连接到程序加载逻辑，再连接 verifier 和对象生命周期。宏展开或函数指针无法静态确认时，路径边显示证据等级。
 
@@ -96,7 +110,9 @@ verifier 路径从程序加载进入检查阶段，连接指令、控制流、�
 
 attach 路径跨出 `kernel/bpf/`，连接 link、program type、attach type 和具体 hook。这证明每个仓库或目录只是子图，真实机制通过稳定领域实体连接。
 
-## 18.7 生成层级 Wiki
+## 18.7 从符号地图走向机制 Wiki
+
+当前 build-wiki 输出按文件分组的符号地图与版本化引用。它没有生成机制解释，也没有向量检索或自动更新；下文是进一步组织页面的目标。
 
 Wiki 顶层是“eBPF 子系统地图”，说明用户态加载、验证、map、执行与 attach 的总体关系。第二层按机制划分：syscall、program、map、verifier、BTF、link/attach、JIT 与 selftests。第三层是源码模块，第四层是关键符号。
 
@@ -106,9 +122,9 @@ Wiki 顶层是“eBPF 子系统地图”，说明用户态加载、验证、map�
 
 页面的 `freshness` 由输入提交决定。切换到新 tag 后，变更文件使相关符号、模块和机制页失效；未变化的官方概念页可以复用，但其源码引用仍生成新快照验证。
 
-## 18.8 横向混合、纵向下钻
+## 18.8 扩展方向：横向混合、纵向下钻
 
-查询“BPF 程序加载时如何被 verifier 检查”先由 Wiki 向量命中程序加载与 verifier 页面，BM25 命中 `BPF_PROG_LOAD`，图连接命令、处理函数和 verifier 入口。上下文包返回一条高层路径及每一步源码证据。
+在实现语义通道和机制图之后，查询“BPF 程序加载时如何被 verifier 检查”可以先由 Wiki 向量命中程序加载与 verifier 页面，BM25 命中 `BPF_PROG_LOAD`，图连接命令、处理函数和 verifier 入口。上下文包返回一条高层路径及每一步源码证据。
 
 查询具体符号使用 BM25 和代码索引优先；查询“修改某状态合并逻辑影响哪些测试”以符号为图种子，沿调用、模块与 `TESTED_BY` 扩展；查询“map 如何连接用户态和程序”同时使用官方文档、系统调用与 map 操作图。
 
@@ -138,13 +154,13 @@ python3 -m unittest discover -s tests -v
 
 这些命令需要本地已有 Linux checkout；仓库自带 `fixtures/linux/` 只用于解析器单元测试，不足以复现完整子系统图。
 
-首版实现可以只依赖 Git、Python 与可选 Tree-sitter。没有 clang/BTF 时，系统生成 `syntax-only` 快照，表示关系只根据语法推测，尚未经过完整编译信息确认；查询结果必须明确显示这种精度下降。启用编译产物后再生成 `compiled` 快照，并比较两者差异。
+当前代码只依赖 Git 和 Python 标准库，始终输出 syntax-only 快照；没有隐藏的 Tree-sitter 开关，也没有 compiled 模式。读者可先用 --fixture 跑小样例，再使用真实 Git 仓库。Git 内容通过一个 cat-file --batch 进程读取，不要求 checkout 所有文件，也避免 macOS 大小写冲突影响输入。
 
 输出目录只保存可重建索引和 Wiki，不提交 Linux 源码。测试使用几份兼容许可证的小型 fixture 验证解析器，真实集成测试在用户本地 Linux checkout 上运行。
 
 ## 18.10 验收问题与误差报告
 
-第一版验收覆盖五组问题：
+目标评测应覆盖以下五组问题；当前运行只验证了部分符号入口和名称候选，没有完整通过这些机制题：
 
 1. `BPF_PROG_LOAD` 从用户 ABI 到 verifier 的主要路径；
 2. verifier 如何表示并传播寄存器与栈状态；
@@ -170,7 +186,7 @@ python3 -m unittest discover -s tests -v
 
 ## 本章小结
 
-Linux eBPF 案例把代码知识库的两条检索路线放到真实源码上验证：横向同时使用 BM25、摘要向量和关系图，纵向则从子系统、机制和模块逐层深入，直到固定版本的源码。Tree-sitter 提供广覆盖候选，编译信息、SCIP 与 BTF 提高确定性，LSP 服务交互，ArtifactFS 保存最终证据。领域对象、配置条件和误差报告防止图谱伪装成完整真相。按固定 tag、可重建 Manifest 和验收问题实施后，这套方法可以逐步扩展到完整 Linux 内核。
+当前 eBPF 实验验证了固定版本读取、正则候选抽取、BM25、有限关系扩展和文件级 Wiki，能帮助读者定位源码入口。完整的机制理解还需要本章列出的领域对象、编译配置、selftests 和运行证据。Tree-sitter、SCIP、BTF 与向量通道是后续精度路线，不能把尚未实现的组件写成当前实验结果。
 
 本书进一步对完整 Linux `v6.12` 执行了全仓 SQLite 建模与六组跨子系统查询，参见[番外：为完整 Linux 内核建立代码知识库](/extras/full-linux-kernel)。
 

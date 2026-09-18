@@ -1,0 +1,753 @@
+{
+  "schema": "northstar-strategy-context@1",
+  "tenant": "northstar",
+  "enterprise_profiles": [
+    {
+      "id": "enterprise-northstar",
+      "name": "Northstar Commerce",
+      "mission": "为个人和企业采购客户提供可靠的在线零售与履约服务",
+      "business_model": {
+        "customers": [
+          "Enterprise",
+          "Consumer"
+        ],
+        "value_proposition": "家居与消费电子商品、可靠交付和售后",
+        "revenue_streams": [
+          "商品销售"
+        ],
+        "channels": [
+          "Direct",
+          "Partner"
+        ]
+      },
+      "operating_model": "产品品类、区域和客户分群协作经营",
+      "risk_appetite": "增长不得绕过毛利、客户数据权限和销售审批约束",
+      "evidence": "fixture://northstar/strategy-context@1#/enterprise_profiles/0"
+    }
+  ],
+  "external_factors": [
+    {
+      "id": "factor-demand",
+      "name": "企业采购预算收紧",
+      "kind": "market_signal",
+      "period": "H2-2026",
+      "status": "context_only",
+      "note": "虚构市场简报，只提供外部环境线索，不证明本公司销量变化原因",
+      "evidence": "fixture://northstar/strategy-context@1#/external_factors/0"
+    }
+  ],
+  "metric_definitions": [
+    {
+      "id": "metric-sales-bookings",
+      "name": "净确认订单额（Bookings）",
+      "unit": "USD-thousands",
+      "periods": [
+        "H1-2026",
+        "H2-2026"
+      ],
+      "inclusion": "确认订单金额扣除折扣及在同一半年度记账的取消、退货冲减；不含税和运费。按交易日固定汇率表折算 USD；不是收入、回款或 GMV。",
+      "source_data_product": "data-sales-facts",
+      "owner": "org-revops",
+      "calendar": "UTC 自然年；H1=[2026-01-01,2026-07-01)，H2=[2026-07-01,2027-01-01)",
+      "scenario": "actual",
+      "grain": "预聚合的公司总额及单维度分类；没有订单级联合明细",
+      "scope": "northstar 全公司",
+      "definition_version": "bookings@1",
+      "fx_version": "fx-fixture@1",
+      "evidence": "fixture://northstar/strategy-context@1#/metric_definitions/0"
+    }
+  ],
+  "strategic_objectives": [
+    {
+      "id": "objective-h2-growth",
+      "name": "H2 维持全公司净确认订单额增长",
+      "target_metric": "metric-sales-bookings",
+      "target_period": "H2-2026",
+      "target_value": 1300,
+      "unit": "USD-thousands",
+      "owner": "org-revops",
+      "scope": "northstar 全公司",
+      "evidence": "fixture://northstar/strategy-context@1#/strategic_objectives/0"
+    }
+  ],
+  "business_capabilities": [
+    {
+      "id": "cap-enterprise-sales",
+      "name": "企业客户销售",
+      "owner": "org-enterprise-sales",
+      "evidence": "fixture://northstar/strategy-context@1#/business_capabilities/0"
+    },
+    {
+      "id": "cap-channel-management",
+      "name": "渠道管理",
+      "owner": "org-emea-sales",
+      "evidence": "fixture://northstar/strategy-context@1#/business_capabilities/1"
+    },
+    {
+      "id": "cap-pricing",
+      "name": "品类定价与促销管理",
+      "owner": "org-merchandising",
+      "evidence": "fixture://northstar/strategy-context@1#/business_capabilities/2"
+    }
+  ],
+  "value_streams": [
+    {
+      "id": "value-stream-acquire-expand",
+      "name": "获客到扩张",
+      "capabilities": [
+        "cap-enterprise-sales",
+        "cap-channel-management",
+        "cap-pricing"
+      ],
+      "evidence": "fixture://northstar/strategy-context@1#/value_streams/0"
+    }
+  ],
+  "business_processes": [
+    {
+      "id": "process-pipeline-management",
+      "name": "销售漏斗管理",
+      "supports": [
+        "cap-enterprise-sales",
+        "cap-channel-management"
+      ],
+      "owner": "org-revops",
+      "evidence": "fixture://northstar/strategy-context@1#/business_processes/0"
+    },
+    {
+      "id": "process-pricing-approval",
+      "name": "定价与商业条款审批",
+      "supports": [
+        "cap-pricing"
+      ],
+      "owner": "org-merchandising",
+      "evidence": "fixture://northstar/strategy-context@1#/business_processes/1"
+    }
+  ],
+  "business_units": [
+    {
+      "id": "org-revops",
+      "name": "Revenue Operations",
+      "kind": "central",
+      "decision_right": "维护指标口径和组织经营复核",
+      "evidence": "fixture://northstar/strategy-context@1#/business_units/0"
+    },
+    {
+      "id": "org-emea-sales",
+      "name": "EMEA Sales",
+      "kind": "regional",
+      "decision_right": "负责本业务范围的经营分析",
+      "evidence": "fixture://northstar/strategy-context@1#/business_units/1"
+    },
+    {
+      "id": "org-enterprise-sales",
+      "name": "Enterprise Sales",
+      "kind": "segment",
+      "decision_right": "负责本业务范围的经营分析",
+      "evidence": "fixture://northstar/strategy-context@1#/business_units/2"
+    },
+    {
+      "id": "org-merchandising",
+      "name": "Merchandising",
+      "kind": "product",
+      "decision_right": "品类定价方案，发布仍需独立审批",
+      "evidence": "fixture://northstar/strategy-context@1#/business_units/3"
+    }
+  ],
+  "products": [
+    {
+      "id": "product-home",
+      "name": "Home & Living",
+      "evidence": "fixture://northstar/strategy-context@1#/products/0"
+    },
+    {
+      "id": "product-electronics",
+      "name": "Consumer Electronics",
+      "evidence": "fixture://northstar/strategy-context@1#/products/1"
+    }
+  ],
+  "market_segments": [
+    {
+      "id": "segment-enterprise",
+      "name": "Enterprise",
+      "evidence": "fixture://northstar/strategy-context@1#/market_segments/0"
+    },
+    {
+      "id": "segment-consumer",
+      "name": "Consumer",
+      "evidence": "fixture://northstar/strategy-context@1#/market_segments/1"
+    }
+  ],
+  "regions": [
+    {
+      "id": "region-emea",
+      "name": "EMEA",
+      "kind": "sales_region",
+      "evidence": "fixture://northstar/strategy-context@1#/regions/0"
+    },
+    {
+      "id": "region-other",
+      "name": "Other",
+      "kind": "sales_region",
+      "evidence": "fixture://northstar/strategy-context@1#/regions/1"
+    }
+  ],
+  "channels": [
+    {
+      "id": "channel-direct",
+      "name": "Direct",
+      "kind": "sales_channel",
+      "evidence": "fixture://northstar/strategy-context@1#/channels/0"
+    },
+    {
+      "id": "channel-partner",
+      "name": "Partner",
+      "kind": "sales_channel",
+      "evidence": "fixture://northstar/strategy-context@1#/channels/1"
+    }
+  ],
+  "applications": [
+    {
+      "id": "app-crm",
+      "name": "CRM",
+      "supports": [
+        "cap-enterprise-sales",
+        "cap-channel-management"
+      ],
+      "evidence": "fixture://northstar/strategy-context@1#/applications/0"
+    },
+    {
+      "id": "app-erp",
+      "name": "ERP",
+      "supports": [
+        "cap-enterprise-sales"
+      ],
+      "evidence": "fixture://northstar/strategy-context@1#/applications/1"
+    },
+    {
+      "id": "app-sales-dwh",
+      "name": "Sales Warehouse",
+      "supports": [
+        "cap-enterprise-sales",
+        "cap-pricing"
+      ],
+      "evidence": "fixture://northstar/strategy-context@1#/applications/2"
+    },
+    {
+      "id": "app-metric-service",
+      "name": "Metric Service",
+      "supports": [
+        "cap-pricing"
+      ],
+      "evidence": "fixture://northstar/strategy-context@1#/applications/3"
+    },
+    {
+      "id": "service-order-ledger",
+      "name": "Order Service",
+      "supports": [
+        "cap-enterprise-sales"
+      ],
+      "note": "与订单运行切片共用的稳定业务身份；本例未实现订单流水连接器",
+      "evidence": "fixture://northstar/strategy-context@1#/applications/4"
+    }
+  ],
+  "data_products": [
+    {
+      "id": "data-sales-facts",
+      "name": "Sales Facts",
+      "system": "app-sales-dwh",
+      "refresh": "daily",
+      "quality_owner": "org-revops",
+      "evidence": "fixture://northstar/strategy-context@1#/data_products/0"
+    },
+    {
+      "id": "data-pipeline-facts",
+      "name": "Pipeline Facts",
+      "system": "app-crm",
+      "refresh": "hourly",
+      "quality_owner": "org-revops",
+      "evidence": "fixture://northstar/strategy-context@1#/data_products/1"
+    }
+  ],
+  "observations": [
+    {
+      "id": "obs-total-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 1200,
+      "unit": "USD-thousands",
+      "scope": {},
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/0"
+    },
+    {
+      "id": "obs-total-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 840,
+      "unit": "USD-thousands",
+      "scope": {},
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/1"
+    },
+    {
+      "id": "obs-emea-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 480,
+      "unit": "USD-thousands",
+      "scope": {
+        "region": "region-emea"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/2"
+    },
+    {
+      "id": "obs-emea-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 240,
+      "unit": "USD-thousands",
+      "scope": {
+        "region": "region-emea"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/3"
+    },
+    {
+      "id": "obs-home-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 700,
+      "unit": "USD-thousands",
+      "scope": {
+        "product": "product-home"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/4"
+    },
+    {
+      "id": "obs-home-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 420,
+      "unit": "USD-thousands",
+      "scope": {
+        "product": "product-home"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/5"
+    },
+    {
+      "id": "obs-enterprise-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 800,
+      "unit": "USD-thousands",
+      "scope": {
+        "segment": "segment-enterprise"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/6"
+    },
+    {
+      "id": "obs-enterprise-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 500,
+      "unit": "USD-thousands",
+      "scope": {
+        "segment": "segment-enterprise"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/7"
+    },
+    {
+      "id": "obs-direct-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 900,
+      "unit": "USD-thousands",
+      "scope": {
+        "channel": "channel-direct"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/8"
+    },
+    {
+      "id": "obs-direct-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 580,
+      "unit": "USD-thousands",
+      "scope": {
+        "channel": "channel-direct"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/9"
+    },
+    {
+      "id": "obs-region-other-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 720,
+      "unit": "USD-thousands",
+      "scope": {
+        "region": "region-other"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/10"
+    },
+    {
+      "id": "obs-region-other-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 600,
+      "unit": "USD-thousands",
+      "scope": {
+        "region": "region-other"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/11"
+    },
+    {
+      "id": "obs-product-other-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 500,
+      "unit": "USD-thousands",
+      "scope": {
+        "product": "product-electronics"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/12"
+    },
+    {
+      "id": "obs-product-other-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 420,
+      "unit": "USD-thousands",
+      "scope": {
+        "product": "product-electronics"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/13"
+    },
+    {
+      "id": "obs-segment-other-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 400,
+      "unit": "USD-thousands",
+      "scope": {
+        "segment": "segment-consumer"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/14"
+    },
+    {
+      "id": "obs-segment-other-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 340,
+      "unit": "USD-thousands",
+      "scope": {
+        "segment": "segment-consumer"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/15"
+    },
+    {
+      "id": "obs-channel-other-h1",
+      "metric": "metric-sales-bookings",
+      "period": "H1-2026",
+      "value": 300,
+      "unit": "USD-thousands",
+      "scope": {
+        "channel": "channel-partner"
+      },
+      "source": "data-sales-facts@2026-07-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/16"
+    },
+    {
+      "id": "obs-channel-other-h2",
+      "metric": "metric-sales-bookings",
+      "period": "H2-2026",
+      "value": 260,
+      "unit": "USD-thousands",
+      "scope": {
+        "channel": "channel-partner"
+      },
+      "source": "data-sales-facts@2027-01-01",
+      "evidence": "fixture://northstar/strategy-context@1#/observations/17"
+    }
+  ],
+  "events": [
+    {
+      "id": "event-emea-channel-freeze",
+      "name": "EMEA partner channel freeze",
+      "period": "H2-2026",
+      "scope": {
+        "region": "region-emea",
+        "channel": "channel-partner"
+      },
+      "source": "crm-change-log@2026-07-15",
+      "status": "candidate_context",
+      "evidence": "fixture://northstar/strategy-context@1#/events/0"
+    },
+    {
+      "id": "event-home-promotion",
+      "name": "家居品类促销方案调整",
+      "period": "H2-2026",
+      "scope": {
+        "product": "product-home"
+      },
+      "status": "candidate_context",
+      "evidence": "fixture://northstar/strategy-context@1#/events/1"
+    }
+  ],
+  "relations": [
+    {
+      "from": "enterprise-northstar",
+      "type": "ALIGNS_WITH",
+      "to": "objective-h2-growth",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/0"
+    },
+    {
+      "from": "objective-h2-growth",
+      "type": "MEASURED_BY",
+      "to": "metric-sales-bookings",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/1"
+    },
+    {
+      "from": "objective-h2-growth",
+      "type": "REALIZED_THROUGH",
+      "to": "value-stream-acquire-expand",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/2"
+    },
+    {
+      "from": "value-stream-acquire-expand",
+      "type": "ENABLED_BY",
+      "to": "cap-enterprise-sales",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/3"
+    },
+    {
+      "from": "value-stream-acquire-expand",
+      "type": "ENABLED_BY",
+      "to": "cap-channel-management",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/4"
+    },
+    {
+      "from": "value-stream-acquire-expand",
+      "type": "ENABLED_BY",
+      "to": "cap-pricing",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/5"
+    },
+    {
+      "from": "process-pipeline-management",
+      "type": "OPERATED_BY",
+      "to": "org-revops",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/6"
+    },
+    {
+      "from": "process-pricing-approval",
+      "type": "OPERATED_BY",
+      "to": "org-merchandising",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/7"
+    },
+    {
+      "from": "metric-sales-bookings",
+      "type": "OWNED_BY",
+      "to": "org-revops",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/8"
+    },
+    {
+      "from": "metric-sales-bookings",
+      "type": "USES_DATA_PRODUCT",
+      "to": "data-sales-facts",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/9"
+    },
+    {
+      "from": "data-sales-facts",
+      "type": "SERVED_BY",
+      "to": "app-sales-dwh",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/10"
+    },
+    {
+      "from": "cap-enterprise-sales",
+      "type": "SUPPORTED_BY",
+      "to": "app-sales-dwh",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/11"
+    },
+    {
+      "from": "cap-enterprise-sales",
+      "type": "OWNED_BY",
+      "to": "org-enterprise-sales",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/12"
+    },
+    {
+      "from": "cap-channel-management",
+      "type": "OWNED_BY",
+      "to": "org-emea-sales",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/13"
+    },
+    {
+      "from": "cap-pricing",
+      "type": "OWNED_BY",
+      "to": "org-merchandising",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/14"
+    },
+    {
+      "from": "obs-emea-h2",
+      "type": "POTENTIALLY_RELATED_TO",
+      "to": "event-emea-channel-freeze",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/15"
+    },
+    {
+      "from": "obs-home-h2",
+      "type": "POTENTIALLY_RELATED_TO",
+      "to": "event-home-promotion",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/16"
+    },
+    {
+      "from": "data-sales-facts",
+      "type": "DERIVED_FROM",
+      "to": "app-erp",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/17"
+    },
+    {
+      "from": "data-sales-facts",
+      "type": "DERIVED_FROM",
+      "to": "app-crm",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/18"
+    },
+    {
+      "from": "data-sales-facts",
+      "type": "DERIVED_FROM",
+      "to": "service-order-ledger",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/19"
+    },
+    {
+      "from": "cap-enterprise-sales",
+      "type": "REALIZED_THROUGH",
+      "to": "process-pipeline-management",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/20"
+    },
+    {
+      "from": "cap-pricing",
+      "type": "REALIZED_THROUGH",
+      "to": "process-pricing-approval",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/21"
+    },
+    {
+      "from": "obs-emea-h1",
+      "type": "SCOPED_TO",
+      "to": "region-emea",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/22"
+    },
+    {
+      "from": "obs-emea-h2",
+      "type": "SCOPED_TO",
+      "to": "region-emea",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/23"
+    },
+    {
+      "from": "obs-home-h1",
+      "type": "SCOPED_TO",
+      "to": "product-home",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/24"
+    },
+    {
+      "from": "obs-home-h2",
+      "type": "SCOPED_TO",
+      "to": "product-home",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/25"
+    },
+    {
+      "from": "obs-enterprise-h1",
+      "type": "SCOPED_TO",
+      "to": "segment-enterprise",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/26"
+    },
+    {
+      "from": "obs-enterprise-h2",
+      "type": "SCOPED_TO",
+      "to": "segment-enterprise",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/27"
+    },
+    {
+      "from": "obs-direct-h1",
+      "type": "SCOPED_TO",
+      "to": "channel-direct",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/28"
+    },
+    {
+      "from": "obs-direct-h2",
+      "type": "SCOPED_TO",
+      "to": "channel-direct",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/29"
+    },
+    {
+      "from": "obs-region-other-h1",
+      "type": "SCOPED_TO",
+      "to": "region-other",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/30"
+    },
+    {
+      "from": "obs-region-other-h2",
+      "type": "SCOPED_TO",
+      "to": "region-other",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/31"
+    },
+    {
+      "from": "obs-product-other-h1",
+      "type": "SCOPED_TO",
+      "to": "product-electronics",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/32"
+    },
+    {
+      "from": "obs-product-other-h2",
+      "type": "SCOPED_TO",
+      "to": "product-electronics",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/33"
+    },
+    {
+      "from": "obs-segment-other-h1",
+      "type": "SCOPED_TO",
+      "to": "segment-consumer",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/34"
+    },
+    {
+      "from": "obs-segment-other-h2",
+      "type": "SCOPED_TO",
+      "to": "segment-consumer",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/35"
+    },
+    {
+      "from": "obs-channel-other-h1",
+      "type": "SCOPED_TO",
+      "to": "channel-partner",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/36"
+    },
+    {
+      "from": "obs-channel-other-h2",
+      "type": "SCOPED_TO",
+      "to": "channel-partner",
+      "evidence": "fixture://northstar/strategy-context@1#/relations/37"
+    }
+  ],
+  "fixture": {
+    "synthetic": true,
+    "as_of": "2027-01-02T00:00:00Z",
+    "note": "虚构的 2026 年结账快照，用于教学，不代表当前日期已有 H2 全年事实；与 2026-08-27 事故时钟分开。",
+    "version": "strategy-fixture@1",
+    "acl": [
+      "executive",
+      "strategy",
+      "revops",
+      "product"
+    ],
+    "authority": "authored_fixture",
+    "owner": "org-revops"
+  }
+}

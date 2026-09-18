@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-import subprocess
 import time
 from collections import Counter
 from pathlib import Path
 
-from .engine import CALL_RE, CONTROL_WORDS, _commit, _function_spans, _line
+from .engine import CALL_RE, CONTROL_WORDS, _function_spans, _line
+from .source_tree import SourceTree
 
 
 CODE_SUFFIXES = {".c", ".h"}
@@ -27,19 +27,6 @@ def subsystem(path: str) -> str:
     if parts[0] == "Documentation" and len(parts) > 1:
         return f"Documentation/{parts[1]}"
     return parts[0]
-
-
-def _tracked_files(repo: Path) -> list[str]:
-    if not (repo / ".git").exists():
-        return sorted(path.relative_to(repo).as_posix() for path in repo.rglob("*") if path.is_file())
-    try:
-        output = subprocess.run(
-            ["git", "-C", str(repo), "ls-files", "-z"], check=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        ).stdout
-        return sorted(item.decode("utf-8", errors="replace") for item in output.split(b"\0") if item)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return sorted(path.relative_to(repo).as_posix() for path in repo.rglob("*") if path.is_file())
 
 
 def _schema(connection: sqlite3.Connection) -> None:
@@ -86,41 +73,46 @@ def _insert_node(connection: sqlite3.Connection, values: tuple) -> int:
         "INSERT OR IGNORE INTO nodes(stable_id,kind,name,path,subsystem,line,citation,content) VALUES(?,?,?,?,?,?,?,?)",
         values,
     )
-    if cursor.lastrowid:
+    if cursor.rowcount == 1:
         return int(cursor.lastrowid)
     return int(connection.execute("SELECT id FROM nodes WHERE stable_id=?", (values[0],)).fetchone()[0])
 
 
-def ingest_full(repo: Path, ref: str, database: Path, include_docs: bool = True) -> dict:
-    repo, database = repo.resolve(), database.resolve()
-    commit, started = _commit(repo, ref), time.monotonic()
+def ingest_full(repo: Path, ref: str, database: Path, include_docs: bool = True, *, fixture: bool = False) -> dict:
+    with SourceTree(repo, ref, fixture) as source:
+        return _ingest_full(source, ref, database.resolve(), include_docs)
+
+
+def _ingest_full(source: SourceTree, ref: str, database: Path, include_docs: bool) -> dict:
+    repo, commit, started = source.repo, source.commit, time.monotonic()
+    paths = source.paths
+    selected = [p for p in source.blobs if Path(p).suffix in CODE_SUFFIXES
+                or (include_docs and p.startswith("Documentation/") and Path(p).suffix in DOC_SUFFIXES)]
+    if not selected:
+        raise ValueError("repository contains no supported source files")
     database.parent.mkdir(parents=True, exist_ok=True)
     if database.exists():
         raise FileExistsError(f"database already exists: {database}")
     connection = sqlite3.connect(database)
     _schema(connection)
     counts = Counter()
-    paths = _tracked_files(repo)
 
-    for index, relative in enumerate(paths, start=1):
-        path, suffix = repo / relative, Path(relative).suffix
+    for index, relative in enumerate(sorted(selected), start=1):
+        suffix = Path(relative).suffix
         if suffix not in CODE_SUFFIXES and not (include_docs and relative.startswith("Documentation/") and suffix in DOC_SUFFIXES):
             continue
-        if not path.is_file():
-            counts["missing_worktree"] += 1
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = source.read(relative)
         group = subsystem(relative)
         citation = f"code://linux/kernel@{commit}/{relative}#file:L1"
         file_id = _insert_node(connection, (
             f"file:{relative}", "file" if suffix in CODE_SUFFIXES else "document",
-            path.name, relative, group, 1, citation, text[:2000],
+            Path(relative).name, relative, group, 1, citation, text[:2000],
         ))
         counts["files"] += 1
         if suffix in CODE_SUFFIXES:
-            for type_name in FULL_TYPE_RE.findall(text):
-                offset = text.find(type_name)
-                line = _line(text, offset)
+            for type_match in FULL_TYPE_RE.finditer(text):
+                type_name = type_match.group(1)
+                line = _line(text, type_match.start(1))
                 type_id = _insert_node(connection, (
                     f"type:{relative}#{type_name}:L{line}", "type", type_name, relative,
                     group, line, f"code://linux/kernel@{commit}/{relative}#{type_name}:L{line}",
@@ -178,8 +170,9 @@ def ingest_full(repo: Path, ref: str, database: Path, include_docs: bool = True)
     """)
     elapsed = round(time.monotonic() - started, 3)
     stats = {
-        "schema": "linux-full-kb@1", "repository": str(repo), "ref": ref,
+        "schema": "linux-full-kb@2", "repository": str(repo), "ref": ref,
         "commit": commit, "mode": "sqlite-syntax-only", "include_docs": include_docs,
+        "source_mode": "fixture" if source.fixture else "git-blobs",
         "scan_seconds": scan_seconds,
         "elapsed_seconds": elapsed,
         "counts": {
@@ -205,7 +198,6 @@ def ingest_full(repo: Path, ref: str, database: Path, include_docs: bool = True)
 def query_full(database: Path, question: str, limit: int = 10, subsystem_filter: str | None = None) -> dict:
     connection = sqlite3.connect(database)
     connection.row_factory = sqlite3.Row
-    terms = [term for term in CALL_RE.findall(question + "(") if term not in CONTROL_WORDS]
     # CALL_RE is not a tokenizer; use conservative identifier extraction for FTS.
     terms = re.findall(r"[A-Za-z_][A-Za-z0-9_]*", question)
     expression = " OR ".join(f'"{term}"' for term in terms) or '"linux"'

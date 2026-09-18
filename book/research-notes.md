@@ -33,6 +33,27 @@
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework)
 - [OWASP Top 10 for LLM Applications](https://genai.owasp.org/llm-top-10/)
 
+## 2025–2026 新实践与研究
+
+- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- [Agent Skills 开放规范](https://agentskills.io/)
+- [Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-foundry-iq)
+- [Atlassian Teamwork Graph](https://www.atlassian.com/platform/teamwork-graph)
+- [Glean Enterprise Graph](https://www.glean.com/enterprise-context/enterprise-graph)
+- [AWS Context Ontology Accelerator](https://github.com/aws/context-ontology-accelerator)
+- [GitLab Orbit Knowledge Graph](https://github.com/gitlabhq/orbit-knowledge-graph)
+- [Google Cloud donates A2A to Linux Foundation](https://developers.googleblog.com/google-cloud-donates-a2a-to-linux-foundation/)
+- [Procedural Graphs](https://arxiv.org/abs/2609.09153)
+- [Grounding Agent Memory](https://arxiv.org/abs/2609.11060)
+- [Selective Forgetting](https://arxiv.org/abs/2608.28978)
+- [The Compaction Cliff](https://arxiv.org/abs/2608.22752)
+- [Agent Zero Memory](https://arxiv.org/abs/2608.29606)
+- [RCL: Retrieval-Confidence Layer](https://arxiv.org/abs/2609.11023)
+- [Beyond Vector Similarity: Hierarchical Context-Aware Graph RAG](https://arxiv.org/abs/2609.12464)
+- [MLPerf End-to-End RAG Inference Benchmark](https://mlcommons.org/2026/08/endtoend-inference/)
+
+本节按 2026-09-17 的研究刷新补入。预印本和厂商/开源项目页面用于说明公开提出的做法与项目状态，不等于独立效果保证；GraphRAG 仓库当前 README 标注为维护模式，使用前应查看其变更记录。
+
 ## 运营本体与企业对象模型
 
 - [Palantir Ontology 概览](https://palantir.com/docs/foundry/ontology/overview/)

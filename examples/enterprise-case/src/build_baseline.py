@@ -57,7 +57,16 @@ def compile_documents(manifest_path: Path = RAW_ROOT / "manifest.json") -> list[
 
     documents = []
     for item in manifest["sources"]:
-        source_path = manifest_path.parent / item["path"]
+        raw_root = manifest_path.parent.resolve()
+        source_path = (raw_root / item["path"]).resolve()
+        if Path(item["path"]).is_absolute() or raw_root not in source_path.parents:
+            raise ValueError("source path must stay beneath the raw fixture root")
+        if not isinstance(item.get("tenant"), str) or not item["tenant"].strip():
+            raise ValueError("source tenant is required")
+        if not isinstance(item.get("acl"), list) or any(
+            not isinstance(role, str) or not role.strip() for role in item["acl"]
+        ):
+            raise ValueError("source ACL must be a list of exact role strings")
         text = parse_source(source_path, item["parser"], item.get("symbol"))
         source_uri = f"fixture://northstar/{item['path']}@{item['version']}"
         content_hash = f"sha256:{hashlib.sha256(text.encode()).hexdigest()}"

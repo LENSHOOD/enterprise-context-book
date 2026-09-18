@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from modeling import DEFAULT_MODEL_DIR, compile_domain_model, validate_knowledge_base
+from build_knowledge import compile_knowledge
 
 
 ROOT = Path(__file__).parents[1]
@@ -30,7 +31,7 @@ def build(
     report_output: Path = DEFAULT_REPORT,
 ) -> tuple[dict, dict]:
     model = compile_domain_model(model_dir)
-    documents = json.loads((data_dir / "knowledge.json").read_text(encoding="utf-8"))
+    documents = compile_knowledge(data_dir)
     edges = json.loads((data_dir / "relations.json").read_text(encoding="utf-8"))
     report = validate_knowledge_base(model, documents, edges)
     write_json(output, model)

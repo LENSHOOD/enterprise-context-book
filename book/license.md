@@ -7,7 +7,7 @@
 以下许可说明便于阅读，法律效力以根目录完整许可文本为准。建议引用当前候选版本：
 
 ```text
-xuhai.zhang. 《企业上下文：从知识库到智能体认知基础设施》. v1.0.0-rc.3, 2026. https://github.com/LENSHOOD/enterprise-context-book
+xuhai.zhang. 《企业上下文：从知识库到智能体认知基础设施》. v1.0.0-rc.9, 2026. https://github.com/LENSHOOD/enterprise-context-book
 ```
 
 正式版发布后请使用对应 tag 或提交并更新版本号。
