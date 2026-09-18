@@ -51,7 +51,7 @@ def _citation(commit: str, relative: str, symbol: str, line: int) -> str:
 
 
 def ingest(repo: Path, ref: str, output: Path, scope: list[str], *, fixture: bool = False) -> dict:
-    with SourceTree(repo, ref, fixture) as source:
+    with SourceTree(repo, ref, fixture, scope) as source:
         return _ingest(source, ref, output.resolve(), scope)
 
 

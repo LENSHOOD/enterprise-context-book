@@ -21,16 +21,20 @@ def matches_scope(path: str, pattern: str) -> bool:
 
 
 class SourceTree:
-    def __init__(self, repo: Path, ref: str, fixture: bool = False):
+    def __init__(self, repo: Path, ref: str, fixture: bool = False, scope: list[str] | None = None):
         self.repo = repo.resolve()
         self.process = None
         self.fixture = fixture
+        self.scope = scope or []
         self.blobs = {}
         if not self.repo.is_dir():
             raise FileNotFoundError(f'repository does not exist: {self.repo}')
         if fixture:
             self.paths = sorted(p.relative_to(self.repo).as_posix() for p in self.repo.rglob('*')
-                                if p.is_file() and not p.is_symlink() and '.git' not in p.parts)
+                                if p.is_file() and not p.is_symlink() and '.git' not in p.parts
+                                and (not self.scope or any(matches_scope(
+                                    p.relative_to(self.repo).as_posix(), pattern
+                                ) for pattern in self.scope)))
             digest = hashlib.sha256()
             self.blobs = {p:(self.repo/p).read_bytes() for p in self.paths}
             for path, data in self.blobs.items():
@@ -51,6 +55,8 @@ class SourceTree:
                 metadata, path_bytes = entry.split(b'\t', 1)
                 mode, kind, oid = metadata.split()
                 path = path_bytes.decode('utf-8', errors='surrogateescape')
+                if self.scope and not any(matches_scope(path, pattern) for pattern in self.scope):
+                    continue
                 self.paths.append(path)
                 if kind == b'blob' and mode in (b'100644', b'100755'):
                     self.blobs[path] = oid

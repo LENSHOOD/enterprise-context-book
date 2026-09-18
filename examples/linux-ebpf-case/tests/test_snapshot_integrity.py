@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from linux_kb import ingest, ingest_full, load_snapshot
-from linux_kb.source_tree import matches_scope
+from linux_kb.source_tree import SourceTree, matches_scope
 
 
 class SnapshotIntegrityTest(unittest.TestCase):
@@ -70,6 +70,13 @@ class SnapshotIntegrityTest(unittest.TestCase):
         self.assertTrue(matches_scope('kernel/bpf/f.c','kernel/bpf/**/*.c'))
         self.assertTrue(matches_scope('kernel/bpf/nested/f.c','kernel/bpf/**/*.c'))
         self.assertFalse(matches_scope('kernel/bpf/nested/f.c','kernel/bpf/*.c'))
+
+    def test_source_tree_filters_scoped_paths_before_loading_blobs(self):
+        (self.repo / 'keep.c').write_text('int keep(void) { return 0; }\n')
+        (self.repo / 'skip.c').write_text('int skip(void) { return 0; }\n')
+        with SourceTree(self.repo, 'fixture', fixture=True, scope=['keep.c']) as source:
+            self.assertEqual(['keep.c'], source.paths)
+            self.assertEqual(['keep.c'], list(source.blobs))
 
 
 if __name__ == '__main__': unittest.main()
