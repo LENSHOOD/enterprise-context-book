@@ -12,26 +12,26 @@ Northstar Commerce 是虚构的在线零售企业。虚构并不意味着简单�
 
 ```mermaid
 flowchart LR
-  subgraph Change[任务二：变更影响分析]
-    E[order.cancelled v2] --> C1[退款消费者]
-    E --> C2[库存消费者]
-    E --> C3[通知消费者]
-    C1 --> T1[退款测试]
-    C2 --> T2[库存测试]
-    C3 --> T3[通知测试]
+  subgraph Change["任务二：变更影响分析"]
+    E["order.cancelled v2"] --> C1["退款消费者"]
+    E --> C2["库存消费者"]
+    E --> C3["通知消费者"]
+    C1 --> T1["退款测试"]
+    C2 --> T2["库存测试"]
+    C3 --> T3["通知测试"]
   end
-  subgraph Incident[任务三：退款积压处置]
-    A[队列告警] --> S[SRE 诊断]
-    S --> P[动作预览]
-    P --> I[负责人确认]
-    I --> X[SRE 执行]
-    X --> V[读取指标验证]
+  subgraph Incident["任务三：退款积压处置"]
+    A["队列告警"] --> S["SRE 诊断"]
+    S --> P["动作预览"]
+    P --> I["负责人确认"]
+    I --> X["SRE 执行"]
+    X --> V["读取指标验证"]
   end
-  subgraph Strategy[任务一：战略分析]
-    Q[经营问题] --> M[确认指标语义]
-    M --> D[目标与 H1/H2 差异]
-    D --> B[能力、组织、应用与数据]
-    B --> H[候选假设、缺口与复核]
+  subgraph Strategy["任务一：战略分析"]
+    Q["经营问题"] --> M["确认指标语义"]
+    M --> D["目标与 H1/H2 差异"]
+    D --> B["能力、组织、应用与数据"]
+    B --> H["候选假设、缺口与复核"]
   end
 ```
 
