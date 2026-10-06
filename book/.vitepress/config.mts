@@ -64,6 +64,13 @@ export default withMermaid(defineConfig({
         ]
       },
       {
+        text: '贯穿示例：硬件产品设计',
+        collapsed: false,
+        items: [
+          { text: 'W2 设计草案与预算验证', link: '/cases/hardware-w2' }
+        ]
+      },
+      {
         text: '第四部分 Northstar 实践',
         collapsed: false,
         items: [

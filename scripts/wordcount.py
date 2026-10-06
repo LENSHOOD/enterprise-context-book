@@ -26,6 +26,7 @@ def prose(text: str) -> str:
 
 def count_manuscript() -> tuple[int, list[tuple[str, int]]]:
     files = sorted((ROOT / "book").glob("part-*/*.md"))
+    files += sorted((ROOT / "book" / "cases").glob("*.md"))
     files += [ROOT / "book" / "extras" / "full-linux-kernel.md", ROOT / "book" / "appendices.md"]
     counts = []
     for path in files:
