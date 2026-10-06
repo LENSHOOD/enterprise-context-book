@@ -16,4 +16,6 @@
 
 近期复核：[企业整体内容建模补全（rc.18）](ENTERPRISE_CONTENT_MODEL_2026-10-06.md)。
 
-最新复核：[W2软硬件协同研发（rc.19）](W2_EMBEDDED_SOFTWARE_2026-10-06.md)。
+近期复核：[W2软硬件协同研发（rc.19）](W2_EMBEDDED_SOFTWARE_2026-10-06.md)。
+
+最新复核：[后续案例与前十三章同步（rc.20）](CASE_ALIGNMENT_2026-10-06.md)。
