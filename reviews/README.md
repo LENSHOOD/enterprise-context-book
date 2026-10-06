@@ -4,4 +4,6 @@
 
 近期复核：[第一部分逻辑架构修订（rc.10）](PART_I_LOGICAL_ARCHITECTURE_2026-10-06.md)、[第一部分复审处置（rc.11）](PART_I_RC11_FOLLOWUP_2026-10-06.md)。
 
-最新复核：[第一部分读者视角与架构表达（rc.12）](PART_I_READER_ARCHITECTURE_2026-10-06.md)。
+近期复核：[第一部分读者视角与架构表达（rc.12）](PART_I_READER_ARCHITECTURE_2026-10-06.md)。
+
+最新复核：[企业上下文资源结构（rc.13）](RESOURCE_STRUCTURE_2026-10-06.md)。
