@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 SPEC = importlib.util.spec_from_file_location("hardware_design_checker", ROOT / "check_design.py")
 CHECKER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CHECKER)
@@ -32,6 +33,7 @@ class HardwareDesignTest(unittest.TestCase):
         self.assertFalse(result["physical_verified"])
         self.assertFalse(result["production_release_allowed"])
         self.assertEqual(result["requirements_traced"], 6)
+        self.assertEqual(result["software_requirements_traced"], 4)
         self.assertTrue(result["open_items"])
 
     def test_cheaper_radio_is_not_accepted_if_power_budget_fails(self):
@@ -54,7 +56,7 @@ class HardwareDesignTest(unittest.TestCase):
             CHECKER.evaluate(self.inputs, self.design)
 
     def test_rebased_context_recomputes_budget_after_capacity_change(self):
-        self.inputs["snapshot"] = "w2-inputs-r2"
+        self.inputs["snapshot"] = "w2-inputs-r3"
         self.inputs["capacity"]["available_mAh"] = 800
         self.inputs["capacity"]["source_ref"] = "CAPACITY@r2"
         for source in self.inputs["sources"]:
@@ -105,7 +107,7 @@ class HardwareDesignTest(unittest.TestCase):
 
     def test_missing_input_source_is_rejected_after_rebinding(self):
         records = self.inputs["requirements"] + self.inputs["radios"]
-        records += [self.inputs["capacity"], self.inputs["power"], self.inputs["bom_base"]]
+        records += [self.inputs["capacity"], self.inputs["power"], self.inputs["bom_base"], self.inputs["firmware_policy"]]
         for record in records:
             ref = record.pop("source_ref")
             self.design["input_sha256"] = CHECKER.inputs_digest(self.inputs)
@@ -139,6 +141,29 @@ class HardwareDesignTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertEqual(json.loads(result.stdout)["status"], "invalid_input")
         self.assertNotIn("Traceback", result.stderr)
+
+    def test_software_policy_and_allocation_are_checked(self):
+        for wrong in ("MISSING", "V-COST"):
+            self.design["software_traceability"][0]["verification_id"] = wrong
+            with self.assertRaisesRegex(ValueError, "unresolved software"):
+                CHECKER.evaluate(self.inputs, self.design)
+        self.setUp()
+        for policy in [
+            {"queue_capacity": 4, "retry_delays_s": [10, 20]},
+            {"queue_capacity": 32, "retry_delays_s": [100, 200]},
+            {"queue_capacity": True, "retry_delays_s": [10]},
+            {"queue_capacity": 32, "retry_delays_s": [0]},
+        ]:
+            self.inputs["firmware_policy"] = {**policy, "source_ref": "FW-W2@r1"}
+            self.design["input_sha256"] = CHECKER.inputs_digest(self.inputs)
+            with self.assertRaises(ValueError):
+                CHECKER.evaluate(self.inputs, self.design)
+
+    def test_measurement_software_allocation_cannot_be_dropped(self):
+        self.design["software_traceability"] = [
+            row for row in self.design["software_traceability"] if row["requirement_id"] != "R-MEASUREMENT"]
+        with self.assertRaisesRegex(ValueError, "software allocation"):
+            CHECKER.evaluate(self.inputs, self.design)
 
 
 if __name__ == "__main__":
