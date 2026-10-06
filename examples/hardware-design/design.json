@@ -1,0 +1,39 @@
+{
+  "design_id": "W2-D0",
+  "status": "draft",
+  "input_snapshot": "w2-inputs-r1",
+  "input_sha256": "e5a49410a922ce860f33719775538a247218f621942f64fa856d167a07bcf9ea",
+  "selected_radio": "RADIO-B",
+  "sample_period_s": 60,
+  "upload_period_s": 300,
+  "source_refs": ["REQ-W2@r1", "CAPACITY@r1", "W1-POWER@r1", "BOM-BASE@r1", "RADIO-A@r1", "RADIO-B@r1", "MECHANICAL-W1@r1"],
+  "sections": {
+    "architecture": "电池和电源管理供电；主控连接温湿度传感器、存储及无线候选模块。复用W1外壳约束，接口和布板待评审。",
+    "power_schedule": "每60秒采样并暂存，正常联网时每300秒批量上传。事件之外进入待机，失败重试必须受预算约束。",
+    "interfaces": "传感器到主控使用I2C，无线模块到主控使用SPI；电平、时序、启动与掉电条件均列入接口核对。",
+    "bom": "共同材料包加RADIO-B；只有教学材料估值，不代表量产报价。",
+    "measurement": "测量范围及误差指标列为待确认需求，不根据预算通过推断测量合格。"
+  },
+  "verification_plan": [
+    {"id": "V-TIMING", "status": "planned", "method": "在样机上核验采样、缓存、上传时间及丢包重试"},
+    {"id": "V-POWER", "status": "planned", "method": "测量电池端各工况电流波形，核对可用容量、脉冲、电压、温度及老化"},
+    {"id": "V-COST", "status": "planned", "method": "采购复核器件、数量、备选供应和实际材料报价"},
+    {"id": "V-FIT", "status": "planned", "method": "核对外形、安装孔、连接器、天线空间与装配"},
+    {"id": "V-MEASUREMENT", "status": "planned", "method": "先确认范围及误差，再用参考设备完成环境测试"}
+  ],
+  "traceability": [
+    {"requirement_id": "R-SAMPLE", "design_ref": "power_schedule", "verification_id": "V-TIMING"},
+    {"requirement_id": "R-UPLOAD", "design_ref": "power_schedule", "verification_id": "V-TIMING"},
+    {"requirement_id": "R-LIFE", "design_ref": "power_schedule", "verification_id": "V-POWER"},
+    {"requirement_id": "R-BOM", "design_ref": "bom", "verification_id": "V-COST"},
+    {"requirement_id": "R-MECHANICAL", "design_ref": "architecture", "verification_id": "V-FIT"},
+    {"requirement_id": "R-MEASUREMENT", "design_ref": "measurement", "verification_id": "V-MEASUREMENT"}
+  ],
+  "open_items": [
+    "测量范围与误差指标待产品负责人确认",
+    "电池容量预算、低温与老化影响尚未实测",
+    "无线覆盖、重试次数与事件电量假设尚未验证",
+    "接口电平、时序和天线布置尚未评审",
+    "结构装配、可制造性及适用合规要求待核查"
+  ]
+}
