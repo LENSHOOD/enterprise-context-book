@@ -10,4 +10,6 @@
 
 近期复核：[核心方法、技术选择与平台工程（rc.14）](CORE_METHODS_RESTRUCTURE_2026-10-06.md)，附 [48 条技术证据记录](CORE_TECH_EVIDENCE_2026-10-06.jsonl)。
 
-最新复核：[企业问题定义（rc.15）](PROBLEM_TYPES_2026-10-06.md)。
+近期复核：[企业问题定义（rc.15）](PROBLEM_TYPES_2026-10-06.md)。
+
+最新复核：[W2 硬件创造例子（rc.16）](HARDWARE_CREATION_2026-10-06.md)。

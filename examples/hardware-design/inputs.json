@@ -1,0 +1,35 @@
+{
+  "case_id": "CHENGCHUAN-W2",
+  "snapshot": "w2-inputs-r1",
+  "data_kind": "synthetic_teaching",
+  "sources": [
+    {"ref": "REQ-W2@r1", "description": "教学产品需求；24个月按2×365天折算"},
+    {"ref": "CAPACITY@r1", "description": "教学可分配电量预算，不是电池实测容量"},
+    {"ref": "W1-POWER@r1", "description": "教学功耗输入；均折算到电池输入端"},
+    {"ref": "BOM-BASE@r1", "description": "教学材料估值：主控、传感器、电源管理、存储、PCB、电池和外壳合计"},
+    {"ref": "RADIO-A@r1", "description": "虚构同接口无线候选A，无真实器件或报价对应"},
+    {"ref": "RADIO-B@r1", "description": "虚构同接口无线候选B，无真实器件或报价对应"},
+    {"ref": "MECHANICAL-W1@r1", "description": "教学复用外壳与安装孔的约束，尚无CAD或装配验证"}
+  ],
+  "requirements": [
+    {"id": "R-SAMPLE", "max_period_s": 60, "source_ref": "REQ-W2@r1"},
+    {"id": "R-UPLOAD", "max_period_s": 300, "condition": "正常联网时；每次上传包含此前未传样本", "source_ref": "REQ-W2@r1"},
+    {"id": "R-LIFE", "target_hours": 17520, "source_ref": "REQ-W2@r1"},
+    {"id": "R-BOM", "max_cny": 80, "scope": "每台材料估值；不含研发、认证、税费和物流", "source_ref": "REQ-W2@r1"},
+    {"id": "R-MECHANICAL", "description": "沿用W1外壳与安装孔，必须另做装配检查", "source_ref": "MECHANICAL-W1@r1"},
+    {"id": "R-MEASUREMENT", "description": "温湿度测量范围及误差指标需产品负责人确认后安排验证", "source_ref": "REQ-W2@r1"}
+  ],
+  "capacity": {"available_mAh": 1680, "source_ref": "CAPACITY@r1"},
+  "power": {
+    "reference": "battery_input",
+    "event_charge_basis": "incremental_above_idle",
+    "idle_current_uA": 20,
+    "sample_extra_charge_uAh": 0.02,
+    "source_ref": "W1-POWER@r1"
+  },
+  "bom_base": {"cny": 48, "source_ref": "BOM-BASE@r1"},
+  "radios": [
+    {"id": "RADIO-A", "tx_extra_charge_uAh": 8, "bom_delta_cny": 16, "source_ref": "RADIO-A@r1"},
+    {"id": "RADIO-B", "tx_extra_charge_uAh": 3, "bom_delta_cny": 24, "source_ref": "RADIO-B@r1"}
+  ]
+}
