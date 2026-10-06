@@ -30,10 +30,11 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           python3 -m linux_kb ingest --help
-      - name: Test hardware design budgets and references
+      - name: Test W2 budgets and embedded behavior model
         run: |
           python3 -m unittest discover -s examples/hardware-design/tests -v
           python3 examples/hardware-design/check_design.py
+          python3 examples/hardware-design/simulate_firmware.py
 
   build:
     needs: test

@@ -64,10 +64,10 @@ export default withMermaid(defineConfig({
         ]
       },
       {
-        text: '贯穿示例：硬件产品设计',
+        text: '贯穿示例：软硬件协同研发',
         collapsed: false,
         items: [
-          { text: 'W2 设计草案与预算验证', link: '/cases/hardware-w2' }
+          { text: 'W2 设计、预算与软件验证', link: '/cases/hardware-w2' }
         ]
       },
       {

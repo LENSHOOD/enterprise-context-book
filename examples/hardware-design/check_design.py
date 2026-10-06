@@ -6,6 +6,8 @@ import json
 from decimal import Decimal, DecimalException, InvalidOperation
 from pathlib import Path
 
+from firmware_model import policy_values
+
 
 def inputs_digest(inputs):
     canonical = json.dumps(inputs, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -62,7 +64,7 @@ def evaluate(inputs, design):
     requirements = unique_index(inputs["requirements"], "id", "requirement")
     radios = unique_index(inputs["radios"], "id", "radio")
     source_records = list(requirements.values()) + list(radios.values())
-    source_records += [inputs["capacity"], inputs["power"], inputs["bom_base"]]
+    source_records += [inputs["capacity"], inputs["power"], inputs["bom_base"], inputs["firmware_policy"]]
     if any(not isinstance(record, dict) for record in source_records):
         raise ValueError("every numeric input must be a versioned source record")
     used_refs = {text(record.get("source_ref"), "source reference") for record in source_records}
@@ -86,17 +88,33 @@ def evaluate(inputs, design):
     for name, content in sections.items():
         text(name, "section name")
         text(content, "section content")
-    if not {"architecture", "power_schedule", "interfaces", "bom", "measurement"} <= sections.keys():
+    if not {"architecture", "power_schedule", "interfaces", "bom", "measurement", "firmware", "recovery"} <= sections.keys():
         raise ValueError("required design sections are missing")
     for row in trace.values():
         if text(row.get("design_ref"), "design reference") not in sections or text(row.get("verification_id"), "verification reference") not in verification:
             raise ValueError("unresolved design or verification reference")
+    software_trace = unique_index(design["software_traceability"], "requirement_id", "software traceability")
+    if software_trace.keys() != {"R-SAMPLE", "R-UPLOAD", "R-LIFE", "R-MEASUREMENT"}:
+        raise ValueError("software allocation must cover sampling, upload, lifetime and measurement")
+    software_expected = {"R-SAMPLE": ("firmware", "V-FIRMWARE"),
+                         "R-UPLOAD": ("recovery", "V-FIRMWARE"),
+                         "R-LIFE": ("firmware", "V-POWER"),
+                         "R-MEASUREMENT": ("firmware", "V-MEASUREMENT")}
+    for requirement_id, row in software_trace.items():
+        if ((row.get("design_ref"), row.get("verification_id")) != software_expected[requirement_id]
+                or row.get("verification_id") not in verification):
+            raise ValueError("unresolved software design or wrong verification allocation")
     open_items = text_list(design["open_items"], "open items")
     power = inputs["power"]
     if power["reference"] != "battery_input" or power["event_charge_basis"] != "incremental_above_idle":
         raise ValueError("incompatible power reference or event-charge convention")
     sample_s = number(design["sample_period_s"], "sample period", positive=True)
     upload_s = number(design["upload_period_s"], "upload period", positive=True)
+    capacity_records, retry_delays = policy_values(inputs["firmware_policy"])
+    if type(design["sample_period_s"]) is not int or type(design["upload_period_s"]) is not int:
+        raise ValueError("firmware periods must be integer seconds")
+    if capacity_records * sample_s < upload_s or sum(retry_delays) >= upload_s:
+        raise ValueError("firmware queue or retry schedule cannot cover a normal upload window")
     hours = number(requirements["R-LIFE"]["target_hours"], "target hours", positive=True)
     capacity = number(inputs["capacity"]["available_mAh"], "capacity", positive=True)
     common = number(inputs["bom_base"]["cny"], "common BOM")
@@ -130,10 +148,11 @@ def evaluate(inputs, design):
         "case_id": inputs["case_id"], "input_snapshot": inputs["snapshot"],
         "design_id": design["design_id"], "selected_radio": design["selected_radio"],
         "data_kind": "synthetic_teaching", "requirements_traced": len(trace),
+        "software_requirements_traced": len(software_trace),
         "timing_configuration_pass": timing_ok, "alternatives": alternatives,
         "checks_passed": passed,
         "status": "draft_ready_for_review" if passed else "draft_needs_revision",
-        "physical_verified": False, "production_release_allowed": False,
+        "firmware_target_verified": False, "physical_verified": False, "production_release_allowed": False,
         "open_items": open_items,
         "limits": "Only synthetic average-charge/BOM budgets and reference coverage were checked; no circuit, battery, RF or physical test was performed.",
     }

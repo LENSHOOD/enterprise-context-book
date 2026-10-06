@@ -14,4 +14,6 @@
 
 近期复核：[W2 硬件创造例子（rc.16）](HARDWARE_CREATION_2026-10-06.md)。
 
-最新复核：[企业整体内容建模补全（rc.18）](ENTERPRISE_CONTENT_MODEL_2026-10-06.md)。
+近期复核：[企业整体内容建模补全（rc.18）](ENTERPRISE_CONTENT_MODEL_2026-10-06.md)。
+
+最新复核：[W2软硬件协同研发（rc.19）](W2_EMBEDDED_SOFTWARE_2026-10-06.md)。
