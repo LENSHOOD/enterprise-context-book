@@ -57,7 +57,7 @@ code://linux/kernel@<commit>/kernel/bpf/syscall.c#<symbol>
 
 本节是领域扩展设计。当前程序只有 file、function、type、syscall_command 等候选，不会自动构建下列所有机制实体。
 
-这一节沿用第 8 章的三层方法。概念层用业务语言说明机制，例如“程序加载后先经过验证，再挂接到内核 hook”；逻辑层定义 `ProgramType`、`VerifierPhase`、`AttachType` 等稳定类型，以及它们允许建立的关系；物理层才决定怎样把这些内容真正保存成 SQLite 行、图节点、BM25 字段和 Wiki 页面。Tree-sitter 或 BTF 只负责从源码中提取信息，它们的输出不是领域本体本身。
+这一节沿用第 8 章的问题驱动建模方法：先说明需要理解的机制，例如“程序加载后先经过验证，再挂接到内核 hook”；据此定义 `ProgramType`、`VerifierPhase`、`AttachType` 等类型及其关系；随后映射源码与运行证据，用验收查询检查，再选择 SQLite、图、BM25 字段和 Wiki 等表示。Tree-sitter 或 BTF 提供提取依据，领域模型仍需说明这些信息在机制中意味着什么。
 
 通用代码节点包括仓库、目录、文件、符号、类型、宏、配置和测试。eBPF 还需要领域节点：
 

@@ -6,4 +6,6 @@
 
 近期复核：[第一部分读者视角与架构表达（rc.12）](PART_I_READER_ARCHITECTURE_2026-10-06.md)。
 
-最新复核：[企业上下文资源结构（rc.13）](RESOURCE_STRUCTURE_2026-10-06.md)。
+近期复核：[企业上下文资源结构（rc.13）](RESOURCE_STRUCTURE_2026-10-06.md)。
+
+最新复核：[核心方法、技术选择与平台工程（rc.14）](CORE_METHODS_RESTRUCTURE_2026-10-06.md)，附 [48 条技术证据记录](CORE_TECH_EVIDENCE_2026-10-06.jsonl)。

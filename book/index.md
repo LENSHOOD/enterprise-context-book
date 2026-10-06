@@ -16,8 +16,8 @@ hero:
 features:
   - title: 从历史到体系
     details: 从知识管理讲到 RAG 与 Agent，弄清每项技术解决了什么，又留下了什么问题。
-  - title: 从组件到平台
-    details: 把 RAG、Wiki、图谱、记忆、实时状态、权限和工具连成一套能长期维护的平台。
+  - title: 从方法到实现
+    details: 先理解资料准备、检索、建模和上下文构造，再选择技术，并落实版本、安全、恢复和评测。
   - title: 从证据到行动
     details: 跟着 Northstar 企业案例和 Linux eBPF 代码案例，从原始资料一步步做到可验证的行动。
 ---

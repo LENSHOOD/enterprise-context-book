@@ -42,19 +42,19 @@ export default withMermaid(defineConfig({
         ]
       },
       {
-        text: '第二部分 核心知识能力',
+        text: '第二部分 核心方法与技术选择',
         collapsed: false,
         items: [
-          { text: '4. RAG：访问外部证据', link: '/part-2/chapter-04' },
-          { text: '5. 混合检索', link: '/part-2/chapter-05' },
-          { text: '6. 层级知识', link: '/part-2/chapter-06' },
+          { text: '4. 资料准备与证据单元', link: '/part-2/chapter-04' },
+          { text: '5. 检索：选择与组合通道', link: '/part-2/chapter-05' },
+          { text: '6. 关系与层级导航', link: '/part-2/chapter-06' },
           { text: '7. Wiki：提前做好重复阅读', link: '/part-2/chapter-07' },
-          { text: '8. 知识建模、本体与图谱', link: '/part-2/chapter-08' },
-          { text: '9. 智能体记忆', link: '/part-2/chapter-09' }
+          { text: '8. 知识建模与本体', link: '/part-2/chapter-08' },
+          { text: '9. 任务上下文与记忆', link: '/part-2/chapter-09' }
         ]
       },
       {
-        text: '第三部分 平台架构与治理',
+        text: '第三部分 平台工程与运行保障',
         collapsed: false,
         items: [
           { text: '10. 把知识能力装成平台', link: '/part-3/chapter-10' },
