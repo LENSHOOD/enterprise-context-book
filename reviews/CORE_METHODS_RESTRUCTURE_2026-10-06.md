@@ -8,6 +8,8 @@
 
 对技术的核查以官方规范、官方仓库及固定提交的说明为主，结合社区检索发现候选。共整理 48 条来源记录，覆盖 38 个不同项目仓库，另有标准、工程文章与课程资料。完整来源与采集时间见 [技术证据台账](CORE_TECH_EVIDENCE_2026-10-06.jsonl)。仓库关注度、维护声明和最近推送分开记录，没有据此推断生产部署量、精度或吞吐排名。
 
+其中一项为非公开参考资料，按作者要求仅保留来源标记，不提供访问地址。
+
 ## 章节职责与迁移
 
 | 章节 | 方法或工程责任 | 本轮处理 |
@@ -47,7 +49,7 @@
 
 ## 建模方法的吸收与边界
 
-阅读了所提供课程“建本体”的全部正文单元，并核对当前建模原则页。可借鉴的是从实际任务与业务流程取得依据，再识别对象、状态、关系、触发规则、动作读写、数据映射和实例调试。书稿将这些做法纳入自己的退款设计示例，保留原始来源链接；未复制受限课程原文或发布访问口令。
+阅读了所提供课程“建本体”的全部正文单元，并核对当前建模原则页。可借鉴的是从实际任务与业务流程取得依据，再识别对象、状态、关系、触发规则、动作读写、数据映射和实例调试。书稿将这些做法纳入自己的退款设计示例，非公开出处仅在内部研究记录中保留；未复制受限课程原文或发布访问口令。
 
 没有把课程中的所有关系必须顺着流程方向、动作必须归入固定产品类别等约定提升为通用标准。关系方向服从业务谓词，流程先后通过步骤依赖和事件表达；形式本体、业务规则、工作流和实际授权分别承担责任。演示中的调试发现也不被当成生产成功证明。
 
@@ -117,4 +119,4 @@
 - MAIN-RRF：[Reciprocal rank fusion | Elasticsearch Reference](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/reciprocal-rank-fusion)。
 - MAIN-CONTEXT：[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)。
 - MAIN-PERSISTENCE：[Persistence - Docs by LangChain](https://docs.langchain.com/oss/python/langgraph/persistence)。
-- MAIN-COURSE：[业务对象、规则与动作建模练习](https://fde-bootcamp.inspiregroup.me/part-3/index.html#modeling-1)。
+- MAIN-COURSE：非公开建模参考资料，不提供访问地址。
