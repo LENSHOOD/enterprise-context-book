@@ -246,7 +246,7 @@
       "supports": [
         "cap-enterprise-sales"
       ],
-      "note": "与订单运行切片共用的稳定业务身份；本例未实现订单流水连接器",
+      "note": "预留与订单运行切片对接的业务身份；当前运行切片尚无同 ID 对象，本例未实现订单流水连接器",
       "evidence": "fixture://northstar/strategy-context@1#/applications/4"
     }
   ],

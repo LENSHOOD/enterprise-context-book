@@ -1,6 +1,6 @@
 # Linux eBPF 代码知识库案例
 
-该案例实现第 18 章的离线 `syntax-only` 基线：扫描固定 Linux 源码快照，抽取文件、C 函数、类型、BPF 命令和候选调用，生成对象图、BM25 查询、层级 Wiki 与未解析关系报告。它明确不把正则解析结果称为编译器精确调用图。
+该案例实现第 18 章的离线 `syntax-only` 基线：扫描固定 Linux 源码快照，以正则抽取文件、C 函数、类型、BPF 命令和候选调用，生成对象图、BM25 查询、文件级符号 Wiki 与未解析关系报告。它提供源码资源的导航与取证，不交付企业权限、任务记忆或动作工作流。
 
 ## 使用内置 fixture
 
@@ -42,4 +42,4 @@ python3 -m linux_kb query-full 'schedule task tick' \
   --database generated/linux-v6.12.db --subsystem kernel
 ```
 
-`CALLS_NAME_RESOLVED` 仍然只表示全仓名称唯一，不代表编译器证明。完整结果和架构分析见书中番外。
+全仓的 `CALLS_NAME_RESOLVED` 与子系统的 `CALLS_RESOLVED_NAME` 都只表示扫描范围内名称唯一，属于启发式匹配，不代表编译器证明。完整结果和架构分析见书中番外。
