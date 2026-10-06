@@ -38,7 +38,7 @@ export default withMermaid(defineConfig({
         items: [
           { text: '1. 为什么智能体需要企业上下文', link: '/part-1/chapter-01' },
           { text: '2. 知识管理的历史演进', link: '/part-1/chapter-02' },
-          { text: '3. 上下文的类型与边界', link: '/part-1/chapter-03' }
+          { text: '3. 企业上下文怎样组织起来', link: '/part-1/chapter-03' }
         ]
       },
       {

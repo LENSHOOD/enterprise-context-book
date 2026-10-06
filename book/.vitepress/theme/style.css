@@ -17,6 +17,14 @@
   text-align: justify;
 }
 
+/* Mermaid measures labels using its own line height, not prose spacing. */
+.vp-doc svg .nodeLabel p,
+.vp-doc svg .edgeLabel p {
+  line-height: inherit;
+  text-align: inherit;
+  margin: 0;
+}
+
 .vp-doc h2 {
   border-top: 0;
   margin-top: 2.4rem;
