@@ -76,7 +76,7 @@ W2 设计则需要认识需求、设计修订、器件型号、接口、预算�
 
 静态对象说明业务里有什么，状态和事件说明它们怎样变化。退款申请可以处于待补资料、待审核、已批准、执行中、已完成或失败等状态。提交、批准、执行回执和结果确认是不同事件。先画正常路径，再补拒绝、取消、超时和人工处理分支。
 
-规则可以用“当某事件发生，在条件满足时，允许或要求什么后续处理”描述。条件应包括业务事实、适用规则及必要的数据就绪状态。规则需要明确触发源：外部回调、定时检查、用户提交，还是前一个动作产生的事件。[对象、规则与动作的建模练习](https://fde-bootcamp.inspiregroup.me/part-3/index.html#modeling-2)
+规则可以用“当某事件发生，在条件满足时，允许或要求什么后续处理”描述。条件应包括业务事实、适用规则及必要的数据就绪状态。规则需要明确触发源：外部回调、定时检查、用户提交，还是前一个动作产生的事件。
 
 动作则需要自己的契约：读哪些对象及属性，输入参数是什么，怎样计算或调用外部接口，允许改哪些字段，返回什么结果，失败后怎样处理。例如“核对退款条件”可以只读并返回检查结果；“执行退款”会改变外部交易状态，需要独立授权、并发控制和结果验证。
 
@@ -157,7 +157,6 @@ SKOS 主要用于概念组织，RDF 提供图数据模型，OWL 提供形式语�
 ## 延伸阅读
 
 - W3C：[OWL 2](https://www.w3.org/TR/owl2-overview/)、[SKOS](https://www.w3.org/TR/skos-reference/)、[RDF 1.1](https://www.w3.org/TR/rdf11-concepts/)、[SHACL](https://www.w3.org/TR/shacl/)。
-- [业务对象、规则与动作的建模练习](https://fde-bootcamp.inspiregroup.me/part-3/index.html#modeling-1)，课程资料，部分内容需要访问权限。
 - [领域边界与共享语言](https://martinfowler.com/bliki/BoundedContext.html)。
 - [企业架构元模型](https://web3d.github.io/meaf-book/Chapter2/2.5.html)。
 - [JSON Schema](https://json-schema.org/overview/what-is-jsonschema)、[Pydantic](https://github.com/pydantic/pydantic)、[Neo4j](https://github.com/neo4j/neo4j)、[Apache Jena](https://github.com/apache/jena)、[pySHACL](https://github.com/RDFLib/pySHACL)。
