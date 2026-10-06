@@ -8,6 +8,9 @@
 **企业上下文内容体系**：按商业模式、战略、业务能力、组织、应用数据与业务运行组织企业内容，并通过对象和关系将它们联系起来；见第 1、3 章。<br>
 **企业架构（Enterprise Architecture，EA）**：用结构化方式说明企业的业务、组织、应用、数据和技术怎样共同支持目标，并持续管理这些关系；本书把企业架构资产作为企业上下文来源，不展开完整 EA 方法论；见第 2、8 章。<br>
 **元模型（Metamodel）**：规定一种模型允许出现哪些概念和关系，相当于“模型的规则”；企业架构和知识建模都可以用它约束描述语言；见第 8 章。<br>
+**业务能力（Business Capability）**：企业能够完成哪类事情，如低功耗设计或供应保障；由人员、流程、知识和系统等共同支撑，见第 8 章。<br>
+**价值流（Value Stream）**：从利益相关者的需要出发，描述价值怎样逐步形成并交付；每个阶段可以需要多种业务能力，见第 8 章。<br>
+**业务流程（Business Process）**：说明一项工作如何开展，包括步骤、参与角色、输入输出、条件和异常处理；见第 8 章。<br>
 **视角/视图（Viewpoint/View）**：视角规定如何组织某类关注点，视图是据此形成的架构表达；见第 6 章。<br>
 **领域驱动设计（Domain-Driven Design，DDD）**：围绕领域模型和共享语言组织复杂软件设计的实践；本书主要借用其限界上下文、统一语言和领域事件；见第 8 章。<br>
 **限界上下文（Bounded Context）**：某套模型和词义保持一致的明确边界；不同边界可保留同名但不同义的概念；见第 8 章。<br>
@@ -76,7 +79,7 @@
 - Agent 集成：[MCP](https://modelcontextprotocol.io/specification/)
 - 企业架构历史：[Zachman, 1987](https://doi.org/10.1147/sj.263.0276)
 - 架构描述标准：[ISO/IEC/IEEE 42010:2022](https://www.iso.org/standard/74393.html)
-- 企业架构方法：[TOGAF](https://www.opengroup.org/togaf)
+- 企业架构方法：[TOGAF](https://www.opengroup.org/togaf)及[商业模式、能力、价值流、组织与信息映射指南索引](https://www.opengroup.org/togaf/series-guides)（指南正文可能需要官方账号登录）
 - 现代企业架构实践：[MEAF V4 学习镜像](https://web3d.github.io/meaf-book/)（镜像标注版权归 Thoughtworks）
 - 领域建模：[Eric Evans, Domain-Driven Design](https://www.pearson.com/en-gb/subject-catalog/p/domain-driven-design-tackling-complexity-in-the-heart-of-software/P200000009375/9780321125217)
 
