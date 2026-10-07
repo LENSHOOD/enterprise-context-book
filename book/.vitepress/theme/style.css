@@ -34,3 +34,18 @@
   color: var(--vp-c-text-2);
   border-left-color: var(--vp-c-brand-2);
 }
+
+/* Keep the detailed Northstar diagrams legible within the reading column. */
+.northstar-architecture {
+  overflow-x: auto;
+  margin: 24px 0;
+}
+
+.northstar-architecture svg {
+  min-width: 1200px;
+}
+
+.northstar-architecture:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}

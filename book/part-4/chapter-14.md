@@ -57,18 +57,18 @@ Northstar 有三类需要长期保留的信息：企业的资料与模型、一�
 
 JSON 和文件让读者能逐项检查材料。数据规模很小，图遍历和检索直接在内存对象上运行，不必先安装图数据库或向量数据库。SQLite 的用途是保存实验进展：它将一次请求中的任务记录和模拟业务状态一起提交，保证下一次请求能继续。它没有承担生产级全文索引或分布式工作流职责。
 
-下面的图是实际运行结构。矩形是程序或页面，圆柱体是持久文件；箭头标明调用或读写关系。
+先看入口和保存位置。工作台与章节实验由 VitePress 和 Vue 3 构建，通过同源 HTTP/JSON 调用本机的 Python 标准库服务。图中的矩形是页面或程序，圆柱体是持久保存的数据；箭头标明调用或读写关系。核心内部的资源与处理过程在下一小节展开。
 
 ```mermaid
 flowchart TB
-  subgraph Browser["浏览器：同一个书站"]
+  subgraph Browser["浏览器：VitePress + Vue 3"]
     Work["工作台：资源、模型、任务与动作"]
     Learn["章节实验：解释、源码、输入与结果"]
   end
   subgraph Local["本机 Python 服务"]
-    HTTP["lab_server.py：检查请求与实验空间"]
+    HTTP["lab_server.py：Python http.server<br/>同源请求检查与实验空间识别"]
     App["workbench.py：任务条件、记录与更新流程"]
-    Core["NorthstarPlatform：检索、模型、关系、上下文与动作"]
+    Core["NorthstarPlatform · northstar.py<br/>核心能力展开见下图"]
   end
   Files[("来源文件、模型与教学快照")]
   DB[("SQLite：空间状态、任务快照与动作回执")]
@@ -84,7 +84,103 @@ flowchart TB
 
 浏览器只负责收集输入与呈现结果。权限过滤、状态转移和动作验证都发生在 Python 中。界面没有任意 shell 命令入口，也没有另写一套 JavaScript 检索算法。CLI 直接调用同一核心，适合查看最小函数行为；Web 应用再补上跨请求的任务保存和人与人的交接。
 
-### 14.2.2 一项任务怎样通过系统
+### 14.2.2 展开平台核心与资源
+
+`NorthstarPlatform` 是 `northstar.py` 中的一个 Python 类。它把来源编译、模型校验、检索、知识视图和任务处理接在一起。这些能力运行在同一个 Python 进程中，通过函数调用协作。下面按“知识怎样备好并被查到”和“材料怎样用于一次任务”分成两张图，读者可以沿着资源一路找到处理它的代码。
+
+第一张图展开知识资源和取证能力。圆柱体是仓库中的输入文件，矩形是处理模块。虚线表示把校验过的模型或关系交给后续模块使用。图中路径以 `examples/enterprise-case/data/` 为起点，程序文件都在同级的 `src/` 中。两张展开图均可横向滚动查看。
+
+<div class="northstar-architecture" role="region" aria-label="Northstar 知识准备与取证架构图，可横向滚动" tabindex="0">
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 18, "rankSpacing": 36, "padding": 12}}}%%
+flowchart TB
+  Sources[("政策、手册、事件、代码与测试<br/>raw/ · knowledge.json")]
+  Models[("能力问题、术语、契约与映射<br/>modeling/")]
+  Relations[("对象关系与架构声明<br/>relations.json<br/>architecture-claims.json")]
+  subgraph CoreKnowledge["NorthstarPlatform：知识准备与取证"]
+    direction TB
+    Compile["来源编译与合并<br/>Markdown / JSON 解析<br/>Python AST · SHA-256"]
+    Validate["模型校验 · modeling.py<br/>类型、关系、时间与来源"]
+    Scope["权限与时间筛选<br/>northstar.py"]
+    Search["检索 · retrieval.py<br/>BM25 / 同义词 / RRF"]
+    Graph["关系导航<br/>内存邻接表 / 有界 BFS"]
+    Wiki["Wiki<br/>按系统分组 / 模板生成"]
+    Audit["架构核对<br/>声明与证据集合对照"]
+  end
+  Sources --> Compile
+  Models --> Validate
+  Relations -->|关系实例| Validate
+  Compile -->|知识对象| Validate
+  Validate -->|校验通过| Scope
+  Scope --> Search
+  Scope -->|可见端点| Graph
+  Validate -.->|关系契约与边| Graph
+  Scope --> Wiki
+  Validate -->|对象权限| Audit
+  Relations -->|声明与证据| Audit
+```
+
+</div>
+
+这张图里，来源、模型、对象和视图各有自己的位置。原始政策或函数是材料；模型规定什么算政策、事件或消费者，它们能有哪些关系；编译后的对象带着正文、身份、版本、权限、时间和出处；检索结果、关系路径、Wiki 与架构核对结果则是按需要计算出来的视图。模型校验会检查对象和关系是否符合契约，但关系本身仍由样例文件明确编写。
+
+来源编译与合并由 `build_baseline.py` 和 `build_knowledge.py` 完成。检索直接对已获授权的对象计算分数。这里的“语义代理”使用小型同义词表和词集合重合度，再用 RRF 合并两路排名，没有调用嵌入模型。图导航、Wiki 和架构核对都在 `knowledge_views.py` 中：图导航使用 Python 内存中的邻接表和队列，做有界广度优先遍历（BFS），调用前还会筛选关系的时间；Wiki 按系统把可见材料及引用组织成页面，内容来自原文，不调用大模型写摘要；架构核对则按权限比较固定快照中的“声明了什么”和“有哪些关系证据”。
+
+第二张图展开任务上下文和运行能力。经营分析有自己的企业结构与指标快照；退款处置还会读取队列观察和任务记忆。图中的圆角框表示返回给调用方的数据，矩形仍是处理模块，圆柱体仍是持久文件。
+
+<div class="northstar-architecture" role="region" aria-label="Northstar 任务上下文与受控行动架构图，可横向滚动" tabindex="0">
+
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 18, "rankSpacing": 36, "padding": 12}}}%%
+flowchart TB
+  StrategyData[("商业模式、目标、能力与组织<br/>应用、数据、指标与经营快照<br/>strategy-context.json")]
+  RuntimeData[("模拟队列与错误率初值<br/>runtime.json")]
+  Saved[("任务与实验空间记录<br/>SQLite<br/>workspaces.sqlite3")]
+  Evidence("前图的取证结果<br/>证据、关系与语义契约")
+  subgraph CoreTask["NorthstarPlatform：上下文与受控行动"]
+    direction TB
+    Strategy["经营分析 · strategy.py<br/>指标校验 / 差异计算"]
+    Observe["运行观察<br/>权限 / 新鲜度 / 版本检查"]
+    Memory["任务记忆与状态<br/>TaskMemory / 内存字典"]
+    Context["上下文入口 · context()<br/>按任务模式组装材料"]
+    Action["受控动作<br/>状态机 / 参数散列<br/>有效期 / 幂等键"]
+  end
+  StrategyData --> Strategy
+  RuntimeData -->|初始化| Observe
+  Strategy --> Context
+  Evidence --> Context
+  Observe --> Context
+  Memory -->|事件与可用工具| Context
+  Action <-->|状态与动作事件| Memory
+  Action <-->|读取、更新、验证| Observe
+  Package("本次任务上下文<br/>材料、缺口与行动边界")
+  Saved <-->|workbench.py 保存与恢复| Memory
+  Context --> Package
+```
+
+</div>
+
+两张图之间有明确的连接：业务任务的 `context()` 取得检索证据、关系路径，再由 `modeling.py` 提取相关类型和关系说明；需要运行信息时，再加入观察与任务事件。Wiki 和架构核对有独立的浏览接口，当前 `context()` 不会把它们的全部输出自动塞进任务包。经营分析使用 `strategy.py` 处理固定的企业经营快照，不经过 BM25，也不走退款动作状态机。
+
+任务包返回之后，是否准备动作、由谁确认、何时执行，仍是后续调用。`context()` 本身不会执行退款。核心用内存字典和事件列表记录当前状态，`workbench.py` 再把任务、核心状态和政策修改记录保存为 SQLite 中的 JSON 状态。重新打开实验空间时，服务重建知识资源并恢复这些状态；SQLite 并没有替代前图的资源文件或检索计算。
+
+沿图查找材料时，可以使用下面这份资源清单：
+
+| 资源 | 实际位置 | 保存的内容与用途 |
+|---|---|---|
+| 五份可读来源及其登记信息 | `data/raw/`、`data/raw/manifest.json` | 取消政策、退款手册、事件 Schema、消费者函数和测试函数；manifest 声明解析方式、版本、权限与引用 |
+| 工作任务所需的知识对象 | `data/knowledge.json` 与 raw 编译结果 | 19 个对象；其中五个对象的正文与治理信息由 raw 编译结果覆盖，其余十四个是明确编写的教学材料 |
+| 领域模型 | `data/modeling/` 下的四份 JSON | 能力问题、术语表、概念与关系契约、来源映射；由 `modeling.py` 编译和校验 |
+| 对象关系及架构声明 | `data/relations.json`、`data/architecture-claims.json` | 带证据和时间的关系，以及单独保存的架构意图；支持路径查询与声明核对 |
+| 企业结构与经营快照 | `data/strategy-context.json` | 从商业模式、战略目标到能力、组织、应用、数据和经营观察的对象与关系，也保存指标口径、假设与已知缺口 |
+| 模拟运行观察 | `data/runtime.json`，加载后进入核心内存 | 队列与错误率初值；读数附带观察时间和有效期，受控动作改变本空间的模拟状态 |
+| 任务记录与实验空间状态 | 仓库根目录 `.northstar-lab/workspaces.sqlite3` | 工作台保存任务条件、快照、笔记、事件、批准、回执与模拟运行状态，供后续请求恢复 |
+| 按需派生的知识视图 | 查询时在内存中生成 | 排名、关系路径、语义切片和 Wiki；随所用资源、角色与时间条件变化 |
+
+因此，这套小系统的技术主体是 **Python 标准库、结构化文件与内存计算**，交互层使用 **VitePress / Vue 3**，任务持久化使用 **SQLite**。这让每种核心能力都有可运行的实现，也让读者能在不安装额外服务的情况下，逐项追到原始资料和处理函数。后续扩大数据规模时，可以分别替换检索、图存储或持久化模块；对象身份、权限、时间、引用和任务边界仍需要保留。
+
+### 14.2.3 一项任务怎样通过系统
 
 以退款积压为例，SRE 先创建任务。服务记录它的目标、队列范围和完成条件，并将操作者绑定到任务。点击“构造本次上下文”后，平台按角色选择 Runbook 与历史事故，读取带时间的队列观察，再把这些材料和任务进展组织成一份快照。
 
@@ -92,13 +188,13 @@ flowchart TB
 
 经营分析沿用任务条件、快照、笔记和复核记录，但不进入退款动作状态机。它先返回需要确认的指标契约，确认后才计算差异，最后由人登记复核说明。这种共享公共部分、分别实现业务规则的方式，比把所有任务强塞进同一种状态更容易理解和维护。
 
-### 14.2.3 资料变化后，系统怎样响应
+### 14.2.4 资料变化后，系统怎样响应
 
 工作台提供一条小而完整的维护路径：产品负责人给政策副本追加说明，平台重新编译对象，更新内容散列和版本，检索与 Wiki 随后使用新资源。已有任务仍保留原来的快照，同时标明资源已经更新，需要重新取证。已有动作预览的事故任务不能沿用旧批准，必须新建任务重新诊断。
 
 当前实现采取保守做法：任何政策更新都标记本实验空间的全部旧任务。它没有增量依赖队列，也没有完整的历史资源查询服务。这个取舍适合小样例：读者可以完整观察“来源—对象—视图—任务”的变化，再在第11章的版本与血缘契约下替换为更精确的更新机制。
 
-### 14.2.4 打开完成后的工作台
+### 14.2.5 打开完成后的工作台
 
 安装 Node.js 22 和 Python 3.10 或更新版本，在仓库根目录运行：
 
