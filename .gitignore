@@ -5,3 +5,5 @@ examples/**/__pycache__/
 examples/**/generated/
 examples/**/generated-*/
 .DS_Store
+.northstar-lab/
+book/.vitepress/theme/generated/

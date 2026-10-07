@@ -2,13 +2,31 @@
 
 Northstar 是本书第四部分的可运行案例。读者先看到战略分析、影响分析和退款处置三条工作线的结果，再从原始来源逐步构造对象与检索；从能力问题、术语、概念和源映射编译知识模型；随后使用关系、Wiki、Context Package 和受控动作。这些工作横跨认知、决策与执行；创造任务由独立的 `examples/hardware-design/` W2 软硬件练习补充。
 
-## 先分清三层
+## 本地交互工作台
+
+在仓库根目录安装 Node.js 22、Python 3.10 或更新版本，然后执行：
+
+```bash
+npm ci
+npm run lab
+```
+
+打开终端显示的 `http://127.0.0.1:8765/lab`。工作台与第15—17章嵌入的实验使用同一组件和 Python 核心，可以浏览资源、检查模型、比较检索、阅读 Wiki、创建任务、确认口径和逐步执行模拟动作。真实函数片段在构建时从源文件提取，无需另开 GitHub 页面。公开静态站展示的是明确标注的构建时示例，只有本地服务实际执行请求。
+
+首次创建实验空间后，SQLite 自动保存任务条件、上下文快照、笔记、预览、批准和回执。刷新或重启同版本服务可以继续；默认文件为 `.northstar-lab/workspaces.sqlite3`。Cookie 指向当前空间，不同空间的任务和政策副本隔离。修改 Python 源码后需重新构建页面并新建空间，旧空间留在数据库，但本版没有旧空间切换和迁移功能。
+
+默认端口被占用时，完成构建后执行 `npm run lab:serve -- --port 8766`。本地构建使用根路径；若设置过 `DOCS_BASE`，请先取消该环境变量。不要把教学服务暴露到公网：角色可由读者切换，是模拟身份；队列是模拟状态；SQLite 事务只覆盖本地数据，不保证外部副作用。
+
+Web 时钟由“推进61秒”按钮显式推进。政策更新由 `product` 角色完成，只修改实验副本，并保守地标记全部旧任务需重新取证；已有预览的事故任务必须新建，不能沿用旧批准。Web 和下列独立 CLI 不共享运行状态。
+
+## 范围与实现边界
 
 | 层次 | 内容 | 本仓库的状态 |
 |---|---|---|
 | 目标企业 | 订单、支付、库存、履约、通知五个逻辑服务及其协作 | 业务地图，用来解释问题 |
 | 教学 fixture | 运行与工程切片：19 个对象、13 条关系、3 个代码消费者、1 个逻辑仓；独立 C7 快照：49 个对象、38 条关系 | 可运行、可审阅、故意很小 |
-| 生产化扩展 | 真实连接器、PostgreSQL/pgvector、Tree-sitter、SCIP、MCP/REST、持久任务 | 只给替换边界，不宣称已交付 |
+| 本地系统 | HTTP 接口、Web 教程与工作台、SQLite 空间与任务恢复 | 已实现教学范围 |
+| 生产化扩展 | 真实连接器、生产 IAM、可扩展索引、Tree-sitter、SCIP、MCP、分布式工作流 | 只给替换边界，不宣称已交付 |
 
 C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只读分析边界。来源、模型、观察和任务事件是资源；编译、治理、检索与组装是平台职责；本次选定的证据、进展、缺口和允许工具形成任务上下文。三者的完整关系见本书第 3、14 章。
 
@@ -20,8 +38,8 @@ C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只�
 | C1 | 编译版本化对象并做 ACL-first BM25 | `src/build_baseline.py`、`src/context_demo.py` | `test_build_baseline.py` |
 | C2 | 加入离线语义代理、RRF 与时间语义 | `src/northstar.py` | `test_northstar.py` |
 | C3 | 从能力问题和企业语言编译、验证知识模型 | `data/modeling/`、`src/modeling.py` | 术语边界、时间边、实例闭合测试 |
-| C4 | 以能力问题约束图遍历，并建立 Wiki、记忆与 EA 检测 | `data/relations.json`、`data/architecture-claims.json` | 正反向导航、ACL、Wiki、EA 测试 |
-| C5 | 组装能力问题、语义切片、Context Package 与实时观察 | `NorthstarPlatform.context()` | Context Package 测试 |
+| C4 | 以能力问题约束图遍历，建立 Wiki、EA 检测和更新链 | `knowledge_views.py`、`Workspace.update_policy()` | 正反向导航、ACL、Wiki、EA、更新失效测试 |
+| C5 | 保存任务条件，组装上下文，记录快照与工作进展 | `NorthstarPlatform.context()`、`Workspace.context()` | Context Package 与持久恢复测试 |
 | C6 | SRE 诊断、负责人确认、SRE 执行并验证 | `action_demo.py` | `test_action_boundary.py` |
 | C7 | C-level 只读战略分析：指标、分解、架构上下文、假设和缺口 | `data/strategy-context.json`、`src/strategy.py` | `test_strategy.py` |
 
@@ -80,7 +98,7 @@ python3 -m unittest discover -s tests -v
 
 C3 的三条能力问题验证与 C7 的经营快照校验分别实现。C7 检查关系类型、字段引用、指标可比性、范围及分解对账，不复用 C3 的连通子图门。H1/H2 数字来自 `2027-01-02` 的虚构完整半年快照，单位为千美元，与退款模拟时钟分开。
 
-动作示例的 `resolved` 仅表示模拟队列下降、错误率未恶化以及观察检查通过；它不要求队列清空或逐项退款成功。验证读取同一内存状态，独立业务验证和拒绝执行后的同任务恢复入口仍需实现。任务记忆只保存进程内动作事件，C7 不记录持续分析记忆。
+动作示例的 `resolved` 仅表示模拟队列下降、错误率未恶化以及观察检查通过；它不要求队列清空或逐项退款成功。验证读取同一模拟状态，独立业务验证和拒绝后的同任务重新诊断入口仍需实现。CLI 的任务记忆留在进程内；Web 应用保存核心状态及三条工作线的工作事件，C7 也能记录口径确认、笔记、快照和人工复核。
 
 ## 角色边界
 

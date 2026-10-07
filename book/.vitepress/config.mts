@@ -26,6 +26,7 @@ export default withMermaid(defineConfig({
     nav: [
       { text: '正文', link: '/part-1/chapter-01' },
       { text: '企业案例', link: '/part-4/chapter-14' },
+      { text: '工作台', link: '/lab' },
       { text: 'Linux 案例', link: '/part-5/chapter-18' },
       { text: '全内核番外', link: '/extras/full-linux-kernel' },
       { text: '研究索引', link: '/research-notes' },
@@ -77,7 +78,8 @@ export default withMermaid(defineConfig({
           { text: '14. 成品导览与构建路线', link: '/part-4/chapter-14' },
           { text: '15. 从来源到可信检索', link: '/part-4/chapter-15' },
           { text: '16. 按企业含义连接知识', link: '/part-4/chapter-16' },
-          { text: '17. 让 Agent 安全做完工作', link: '/part-4/chapter-17' }
+          { text: '17. 让 Agent 安全做完工作', link: '/part-4/chapter-17' },
+          { text: 'Northstar 交互工作台', link: '/lab' }
         ]
       },
       {

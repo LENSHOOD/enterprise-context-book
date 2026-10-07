@@ -1,0 +1,57 @@
+.northstar-lab { margin: 2rem 0; padding: 1.4rem; border: 1px solid var(--vp-c-divider); border-radius: 12px; background: var(--vp-c-bg-soft); min-width: 0; }
+.northstar-lab h3 { margin-top: 1rem; }
+.northstar-lab h4 { margin: 0 0 .7rem; font-size: 1rem; }
+.northstar-lab h5 { font-size: .95rem; margin: .8rem 0 .3rem; }
+.northstar-lab p { text-align: left; }
+.ns-heading, .ns-controls { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; }
+.ns-heading { justify-content: space-between; }
+.ns-eyebrow { font-size: .75rem; letter-spacing: .07em; color: var(--vp-c-brand-1); font-weight: 700; }
+.ns-badge { font-size: .75rem; padding: .15rem .5rem; border-radius: 6px; background: var(--vp-c-brand-soft); }
+.northstar-lab .ns-label { display: flex; flex-direction: column; gap: .35rem; margin: .8rem 0; font-size: .85rem; flex: 1; min-width: 0; }
+.northstar-lab select, .northstar-lab input:not([type=checkbox]), .northstar-lab textarea { width: 100%; padding: .55rem .7rem; border: 1px solid var(--vp-c-divider); border-radius: 6px; background: var(--vp-c-bg); color: var(--vp-c-text-1); font: inherit; min-width: 0; }
+.northstar-lab select { appearance: auto; }
+.northstar-lab textarea { min-height: 4.5rem; resize: vertical; }
+.northstar-lab input[type=checkbox] { appearance: auto; margin-right: .3rem; }
+.northstar-lab button { padding: .45rem .8rem; border: 1px solid var(--vp-c-brand-2); border-radius: 6px; background: var(--vp-c-bg); color: var(--vp-c-brand-1); font-size: .85rem; cursor: pointer; }
+.northstar-lab button:hover:not(:disabled) { background: var(--vp-c-brand-soft); }
+.northstar-lab button:disabled { opacity: .45; cursor: not-allowed; }
+.northstar-lab :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--vp-c-brand-1); outline-offset: 3px; }
+.northstar-lab .ns-run { background: var(--vp-c-brand-1); color: white; margin-top: 1rem; }
+.ns-connection, .ns-task-create, .ns-clock { border: 1px solid var(--vp-c-divider); border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+.ns-connection { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.ns-connection p { margin: 0; }
+.northstar-lab small, .ns-muted { color: var(--vp-c-text-2); font-size: .8rem; }
+.ns-clock { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; font-size: .85rem; }
+.ns-clock small { flex-basis: 100%; }
+.ns-build, .ns-reading { border-left: 3px solid var(--vp-c-brand-2); padding-left: 1rem; }
+.ns-output { margin-top: 1.5rem; border-top: 1px solid var(--vp-c-divider); padding-top: 1rem; }
+.ns-origin { font-size: .8rem; color: var(--vp-c-brand-1); }
+.ns-warning { border-left: 3px solid var(--vp-c-warning-1); padding: .7rem; background: var(--vp-c-warning-soft); }
+.ns-state { font-size: 1.1rem; font-weight: 650; margin: 1rem 0; }
+.ns-state small { display: block; font-weight: 400; overflow-wrap: anywhere; }
+.ns-block { margin: 1rem 0; padding: 1rem; background: var(--vp-c-bg); border-radius: 8px; }
+.ns-card { border: 1px solid var(--vp-c-divider); border-radius: 6px; padding: .7rem; margin: .5rem 0; }
+.northstar-lab summary { cursor: pointer; overflow-wrap: anywhere; }
+.ns-card summary small { display: block; margin-left: 1rem; }
+.ns-evidence { white-space: pre-wrap; }
+.ns-citation { font-size: .75rem; font-family: var(--vp-font-family-mono); overflow-wrap: anywhere; }
+.ns-fields { display: grid; grid-template-columns: minmax(100px, 30%) minmax(0, 1fr); font-size: .85rem; margin: .5rem 0; }
+.ns-fields dt, .ns-fields dd { margin: 0; padding: .45rem; border-bottom: 1px solid var(--vp-c-divider); overflow-wrap: anywhere; }
+.ns-fields dt { color: var(--vp-c-text-2); }
+.ns-field-list { padding-left: 1.3rem !important; font-size: .85rem; }
+.ns-field-list li { margin: .4rem 0; }
+.ns-table-wrap { overflow-x: auto; max-width: 100%; }
+.northstar-lab table { display: table; width: 100%; font-size: .8rem; margin: .8rem 0; }
+.northstar-lab table caption { text-align: left; font-weight: 600; }
+.northstar-lab table td { min-width: 90px; overflow-wrap: anywhere; }
+.ns-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem; }
+.ns-metrics strong, .ns-metrics small { display: block; }
+.ns-metrics strong { font-size: 1.35rem; }
+.ns-timeline { list-style: none !important; padding-left: 1rem !important; border-left: 2px solid var(--vp-c-brand-soft); }
+.ns-timeline li { margin: .7rem 0; font-size: .85rem; }
+.ns-timeline small { display: block; }
+.ns-source { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--vp-c-divider); }
+.northstar-lab pre { padding: 1rem; overflow: auto; max-height: 32rem; border-radius: 6px; background: var(--vp-code-block-bg); font-size: .78rem; line-height: 1.65; white-space: pre; }
+.northstar-lab pre code { background: transparent; padding: 0; color: var(--vp-c-text-1); }
+.ns-raw { margin: 1rem 0; }
+@media (max-width: 640px) { .northstar-lab { padding: .8rem; } .ns-controls { align-items: stretch; } .ns-controls .ns-label { flex-basis: 100%; } .ns-block { padding: .7rem; } .ns-fields { grid-template-columns: 1fr; } .ns-fields dt { border: 0; padding-bottom: 0; font-weight: 600; } .ns-metrics { grid-template-columns: 1fr 1fr; } }

@@ -1,7 +1,7 @@
 {
   "name": "enterprise-context-book",
   "private": true,
-  "version": "1.0.0-rc.20",
+  "version": "1.0.0-rc.21",
   "homepage": "https://lenshood.github.io/enterprise-context-book/",
   "repository": {
     "type": "git",
@@ -9,6 +9,11 @@
   },
   "type": "module",
   "scripts": {
+    "lab:catalog": "python3 scripts/export-northstar.py",
+    "lab": "npm run docs:build && python3 examples/enterprise-case/src/lab_server.py",
+    "lab:serve": "python3 examples/enterprise-case/src/lab_server.py",
+    "predocs:dev": "npm run lab:catalog",
+    "predocs:build": "npm run lab:catalog",
     "test": "npm run test:northstar && npm run test:linux && npm run test:hardware",
     "test:hardware": "python3 -m unittest discover -s examples/hardware-design/tests -v && python3 examples/hardware-design/check_design.py && python3 examples/hardware-design/simulate_firmware.py",
     "test:northstar": "python3 -m unittest discover -s examples/enterprise-case/tests -v",
