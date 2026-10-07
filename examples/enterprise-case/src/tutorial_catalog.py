@@ -35,7 +35,7 @@ LESSONS = {
     "C3": {
         "title": "让类型和关系有可检查的含义", "chapter": 16, "panel": "model", "role": "developer",
         "why": "检索到事件和代码还不够，需要说明什么叫消费事件、什么证据支持这条关系。",
-        "build": "按能力问题、术语、概念和源映射四份输入编译模型，再用对象与关系验证。页面返回当前角色可见对象所需的模型切片。",
+        "build": "从能力问题、术语、概念和来源映射四份输入生成模型，再检查对象与关系。页面返回解释当前可见对象所需的定义。",
         "expect": "查看 EventSchema、CodeSymbol 和 CONSUMED_BY 的定义，再对照下面的实例关系。",
         "failure": "在本地修改概念模型中一条关系的端点类型，再运行下面的测试；错误模型应在平台启动时被拒绝。",
         "request": {"op": "model"},
@@ -59,7 +59,7 @@ LESSONS = {
     "update": {
         "title": "修改政策，看变化怎样传下去", "chapter": 16, "panel": "update", "role": "product",
         "why": "一次成功的查询不能说明系统可以持续使用；来源变化后，视图和任务也必须作出反应。",
-        "build": "在当前实验空间的政策副本中追加一条说明，重新编译资源与 Wiki，再把旧任务标为需要重新取证。源码中的原始 fixture 不会被改写。",
+        "build": "给当前实验空间的政策副本追加说明，重新编译资料并生成 Wiki，再提示旧任务需要重新获取材料。仓库里的原始样例不会被改写。",
         "expect": "版本增加 lab 后缀，Manifest 改变，检索与 Wiki 包含新说明。没有旧任务时，失效任务列表为空；已有任务则保留旧快照并显示资源已更新。",
         "failure": "切换 developer 后追加政策应被拒绝。学完第17章后，可先批准一次动作再更新政策，验证旧批准不能继续执行。",
         "request": {"op": "policy.update", "note": "新增核验说明：checkpointalpha"},
@@ -69,10 +69,11 @@ LESSONS = {
     "C5": {
         "title": "从任务条件组装本次上下文", "chapter": 17, "panel": "tasks", "role": "developer", "scenario": "change",
         "why": "共享资源说明企业有什么，任务记录说明这次要做什么、用了哪些依据、还缺什么。",
-        "build": "先保存任务条件，再调用 context；把本次材料作为不可覆盖的快照保存，将后续笔记写成有主体的任务事件。",
+        "build": "先保存任务条件，再调用 context 准备材料。每次保存一份新快照，保留旧快照；后续笔记另记下谁在何时写入。",
         "expect": "创建变更任务并构造上下文。任务条件、证据、关系、缺口和工作记录分别可见；刷新页面后仍能继续。",
         "failure": "换成 support 后不能读取开发者的任务。用户笔记标为未核实声明，不自动变成企业事实。",
-        "sources": [("workbench.py", "Workspace.create_task"), ("workbench.py", "Workspace.context"), ("northstar.py", "NorthstarPlatform.context")],
+        "sources": [("workbench.py", "Workspace.create_task"), ("workbench.py", "Workspace.context"),
+                    ("northstar.py", "NorthstarPlatform.context"), ("workbench.py", "WorkspaceStore.call")],
         "test": "python3 -m unittest discover -s examples/enterprise-case/tests -p test_workbench.py -v",
     },
     "C6": {
@@ -81,7 +82,9 @@ LESSONS = {
         "build": "复用核心动作状态机，通过服务保存预览、批准、回执和模拟队列；每次请求在 SQLite 事务中完成读取、检查、变更和保存。",
         "expect": "SRE 创建任务、构造上下文、准备动作；切换事故负责人检查参数并批准；回到 SRE 执行和验证。队列应从842降到742。",
         "failure": "推进教学时钟61秒后尝试批准或执行，应拒绝过期请求。另建空间验证拒绝分支与重复执行分支。",
-        "sources": [("northstar.py", "NorthstarPlatform.prepare_replay"), ("northstar.py", "NorthstarPlatform.execute_replay"), ("workbench.py", "WorkspaceStore.call")],
+        "sources": [("northstar.py", "NorthstarPlatform.prepare_replay"), ("northstar.py", "NorthstarPlatform.confirm"),
+                    ("northstar.py", "NorthstarPlatform.execute_replay"), ("northstar.py", "NorthstarPlatform.verify_replay"),
+                    ("workbench.py", "WorkspaceStore.call")],
         "test": "python3 -m unittest discover -s examples/enterprise-case/tests -p test_workbench.py -v",
     },
     "C7": {
