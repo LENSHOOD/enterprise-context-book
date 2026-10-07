@@ -2,7 +2,7 @@
 
 本仓库包含书稿、Northstar Commerce 企业上下文案例、Linux eBPF 代码知识库案例，以及 W2 软硬件协同研发示例。
 
-当前公开版本是 `v1.0.0-rc.20` 发布候选，不代表正式版已经通过全部发布门。正文包含 18 章及完整 Linux 内核番外，位于 `book/`；可运行案例位于 `examples/`。已知缺口与验收状态见[发布审计](docs/RELEASE_AUDIT.md)。
+当前公开版本是 `v1.0.0-rc.21` 发布候选，不代表正式版已经通过全部发布门。正文包含 18 章及完整 Linux 内核番外，位于 `book/`；可运行案例位于 `examples/`。已知缺口与验收状态见[发布审计](docs/RELEASE_AUDIT.md)。
 
 - [在线阅读](https://lenshood.github.io/enterprise-context-book/)
 - [项目文档](docs/README.md)
@@ -16,6 +16,8 @@ npm run docs:dev
 ```
 
 生产构建使用 `npm ci && npm run docs:build`。推送到 `main` 后，GitHub Actions 工作流会构建并部署 Pages；仓库 Settings 中需将 Pages Source 设为 GitHub Actions。
+
+Node.js 22 与 Python 3.10 或更新版本用于构建交互教程。运行 `npm run lab` 可以启动本地 Northstar 工作台，并在第15—17章边读真实源码边实际执行 Python。任务与教学状态保存在本地 SQLite；公开静态站只展示源码与标注的构建时示例。详见[运行说明](examples/enterprise-case/README.md)。
 
 ## 本地验证
 
