@@ -30,7 +30,7 @@ Web 时钟由“推进61秒”按钮显式推进。政策更新由 `product` 角
 
 C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只读分析边界。来源、模型、观察和任务事件是资源；编译、治理、检索与组装是平台职责；本次选定的证据、进展、缺口和允许工具形成任务上下文。三者的完整关系见本书第 3、14 章。
 
-## 八个检查点
+## 基础能力与智能辅助检查点
 
 | 检查点 | 你完成的能力 | 主要文件 | 证明 |
 |---|---|---|---|
@@ -42,6 +42,27 @@ C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只�
 | C5 | 保存任务条件，组装上下文，记录快照与工作进展 | `NorthstarPlatform.context()`、`Workspace.context()` | Context Package 与持久恢复测试 |
 | C6 | SRE 诊断、负责人确认、SRE 执行并验证 | `action_demo.py` | `test_action_boundary.py` |
 | C7 | C-level 只读战略分析：指标、分解、架构上下文、假设和缺口 | `data/strategy-context.json`、`src/strategy.py` | `test_strategy.py` |
+| C8 | 从原文提出类型、关系和能力问题，审核后重建模型与视图 | `src/intelligence.py` | 引用、类型、审核、修订和重启测试 |
+| C9 | 澄清请求、逐步取证、交付材料与缺口 | `src/intelligence.py`、`src/model_gateway.py` | 权限、确认、预算、并发和模型协议测试 |
+
+C0—C7 是不依赖大模型的基础流程。C8、C9 共享模型接口，默认使用手写脚本演示；选择 `http` 才会调用服务端配置的真实模型。内部助手完成的是资源维护或一次上下文请求，外部业务任务仍须另行验收。
+
+## 运行智能辅助
+
+在仓库根目录执行 `python3 examples/enterprise-case/src/assistant_demo.py`，可在临时空间走完资源候选、审核发布和退款取证；退出后临时空间删除。要保留记录，请使用 `npm run lab`，在工作台或第16、17章中操作 C8、C9。
+
+接入模型前，在启动服务的终端设置：
+
+```bash
+export NORTHSTAR_MODEL_URL='http://127.0.0.1:11434/v1/chat/completions'
+export NORTHSTAR_MODEL='填写已部署的模型名'
+# 需要认证的服务还须设置 NORTHSTAR_MODEL_KEY；不要把密钥写进书稿或提交到仓库。
+npm run lab
+```
+
+地址必须是完整的 Chat Completions 兼容接口。上例要求读者已有本地模型服务，不会自动安装或下载模型；远程服务须使用 HTTPS。页面选“真实模型”后，新记录使用该配置。也可执行 `python3 examples/enterprise-case/src/assistant_demo.py --mode http`，检查资源建议和任务理解两次调用；该命令不会自动审核模型候选。
+
+真实调用会发送当前角色可见的原文、目录或取证记录。响应必须符合约定的 JSON；模型不能设置权限、替人确认或直接执行业务写操作。每条记录最多接受八次模型步骤，网络读写超时设为45秒，已返回步骤保存在 SQLite。页面最多等候60秒，超时不等于服务端已经取消；先恢复记录再决定是否重试。并发冲突会拒绝提交旧结果，但已发起调用仍可能计费；本例没有生产级总截止时间、并发限流和费用控制。协议测试与脚本演示都不代表真实模型效果评测。
 
 ## 从成品开始运行
 
@@ -106,7 +127,9 @@ C3 的三条能力问题验证与 C7 的经营快照校验分别实现。C7 检�
 
 ## 实现边界
 
-`context_demo.py` 是 C1 的单文件 BM25 基线。`data/modeling/` 是人工评审的模型输入，`generated/domain-model.json` 和验证报告是可删除重建的产物；不要反向手改生成文件。`build_knowledge.py` 把五份 raw 编译结果与十四个补充 fixture 对象合并；运行时与 C3 使用同一函数，原始政策的变化因此会进入检索和 Wiki。图边仍由人编写。`northstar.py` 是 C2-C7 的统一入口：操作任务沿 C2-C6 运行，战略题通过 `--mode strategic` 或 `strategy_demo.py` 读取 C7 的独立战略快照，但最终仍使用同一个 Context Package 入口、Manifest 和主体边界。战略快照是虚构的、已结算的教学数据，不是实时业务数据，也不实现自动因果推断。离线语义代理是同义词扩展与 Jaccard 相似度，不是向量检索；双向导航不改变关系语义；内存队列和任务记忆不等同于真实运行系统。生产化组件可以替换实现，但不应绕过本例由测试保护的对象、ACL、引用、模型、状态机和审计契约。
+`context_demo.py` 是 C1 的单文件 BM25 基线。`data/modeling/` 是人工评审的模型输入，`generated/domain-model.json` 和验证报告是可删除重建的产物；不要反向手改生成文件。`build_knowledge.py` 把五份 raw 编译结果与十四个补充 fixture 对象合并；运行时与 C3 使用同一函数，原始政策的变化因此会进入检索和 Wiki。基础图边由人编写，C8 可在此基础上提出并发布“材料描述服务”的新关系。C8 只维护实验空间中的说明材料，不自动改写外部业务来源，不是通用本体编辑器；Wiki 仍按模板生成。
+
+`northstar.py` 是 C2-C7 的统一入口：操作任务沿 C2-C6 运行，战略题通过 `--mode strategic` 或 `strategy_demo.py` 读取 C7 的独立战略快照，但最终仍使用同一个 Context Package 入口、Manifest 和主体边界。战略快照是虚构的、已结算的教学数据，不是实时业务数据，也不实现自动因果推断。离线语义代理是同义词扩展与 Jaccard 相似度，不是向量检索；双向导航不改变关系语义；内存队列和任务记忆不等同于真实运行系统。C9 调用这些受控读取工具，交付独立的取证包，不会替代 C6 的批准和动作流程。生产化组件可以替换实现，但不应绕过本例由测试保护的对象、ACL、引用、模型、状态机和审计契约。
 
 Docker Compose 也可执行全部验证：
 

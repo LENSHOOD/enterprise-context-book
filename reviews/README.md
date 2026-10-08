@@ -20,4 +20,6 @@
 
 近期复核：[后续案例与前十三章同步（rc.20）](CASE_ALIGNMENT_2026-10-06.md)。
 
-最新复核：[Northstar 工作台与交互教程（rc.21）](NORTHSTAR_INTERACTIVE_2026-10-07.md)。
+近期复核：[Northstar 工作台与交互教程（rc.21）](NORTHSTAR_INTERACTIVE_2026-10-07.md)。
+
+最新复核：[平台内部智能辅助实现与自审（rc.25）](CONTEXT_ASSISTANTS_2026-10-08.md)。

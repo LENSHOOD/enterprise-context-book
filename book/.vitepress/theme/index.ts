@@ -7,5 +7,6 @@ export default {
   extends: DefaultTheme,
   enhanceApp({ app }) {
     app.component('NorthstarLab', defineAsyncComponent(() => import('./components/NorthstarLab.vue')))
+    app.component('ContextAssist', defineAsyncComponent(() => import('./components/ContextAssist.vue')))
   }
 }
