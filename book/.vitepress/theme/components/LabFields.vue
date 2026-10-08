@@ -25,6 +25,11 @@ const names: Record<string, string> = {
   invalidated_tasks: '待重新取证的任务', rule: '更新规则',
   declared_and_evidenced: '声明与证据一致', declared_not_evidenced: '声明缺少证据',
   evidenced_not_declared: '证据尚未登记到声明',
+  title: '标题', entity_type: '对象类型', type_description: '类型含义',
+  question: '需要回答的问题', quote: '原文引文', links: '服务与材料的关系',
+  materials: '实际取得的材料', interpretation: '解释草案', request_id: '请求ID',
+  business_task_completed: '业务任务已完成', reason: '本步目的', step: '步骤',
+  decision: '本步建议', result: '返回结果', provider: '决策来源',
 }
 const simple = (v: any) => v === null || typeof v !== 'object'
 const display = (v: any) => v === null ? '未设置' : v === true ? '是' : v === false ? '否' : String(v)

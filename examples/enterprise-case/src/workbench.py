@@ -19,6 +19,8 @@ import tempfile
 
 from northstar import NorthstarPlatform, Principal, DEFAULT_FIXTURE_TIME
 from modeling import semantic_slice
+from intelligence import ContextAssistant, materialize_resources
+from model_gateway import ModelGateway, ModelError
 
 DATA = Path(__file__).parents[1] / "data"
 ROLES = ("developer", "support", "sre", "incident_commander", "executive", "strategy", "revops", "product")
@@ -76,7 +78,7 @@ class Workspace:
     def now(self):
         return DEFAULT_FIXTURE_TIME + timedelta(seconds=self.state["seconds"])
 
-    def _build(self) -> NorthstarPlatform:
+    def _build(self, extra_release: dict | None = None) -> NorthstarPlatform:
         # Only a private copy is edited; published fixtures remain unchanged.
         with tempfile.TemporaryDirectory(prefix="northstar-build-") as folder:
             data = Path(folder) / "data"
@@ -91,6 +93,10 @@ class Workspace:
                 item["version"] += f"-lab.{len(self.state['policy_notes'])}"
                 item["citation"] = f"knowledge://northstar/policy/order-cancellation@{item['version']}"
                 manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+            releases = list(self.state.get("intelligence", {}).get("releases", []))
+            if extra_release:
+                releases.append(extra_release)
+            materialize_resources(data, releases)
             return NorthstarPlatform(data, clock=self.now)
 
     def _runtime(self) -> dict:
@@ -222,6 +228,8 @@ class Workspace:
         actor = self.principal(payload.get("role", "developer"))
         op = payload.get("op")
         p = self.platform
+        if isinstance(op, str) and op.startswith(("assist.", "resource.")):
+            return ContextAssistant(self).dispatch(payload, actor)
         if op == "overview":
             tasks = [self.task_view(t, actor) for t in self.state["tasks"].values()
                      if t["owner"] == asdict(actor) or (actor.role == "incident_commander" and t.get("preview"))]
@@ -314,8 +322,9 @@ class Workspace:
 
 
 class WorkspaceStore:
-    def __init__(self, path: Path, data_dir: Path = DATA):
+    def __init__(self, path: Path, data_dir: Path = DATA, gateway=None):
         self.path, self.data_dir = path, data_dir
+        self.gateway = gateway or ModelGateway()
         path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(path) as db:
             db.execute("CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, revision TEXT NOT NULL, state TEXT NOT NULL)")
@@ -328,6 +337,8 @@ class WorkspaceStore:
         return identity
 
     def call(self, identity: str, payload: dict) -> dict:
+        if isinstance(payload, dict) and payload.get("op") == "assist.step":
+            return self.model_step(identity, payload)
         # Reconstruct + mutate + commit in one transaction: two clicks cannot
         # both execute against an uncommitted copy of the simulated queue.
         with sqlite3.connect(self.path, timeout=10) as db:
@@ -339,6 +350,35 @@ class WorkspaceStore:
                 raise ValueError("Python源码已变化，旧实验保留在数据库中；请新建空间，避免混用运行版本")
             workspace = Workspace(json.loads(row[1]), self.data_dir)
             result = workspace.dispatch(payload)
+            db.execute("UPDATE workspaces SET state = ? WHERE id = ?",
+                       (json.dumps(workspace.snapshot(), ensure_ascii=False), identity))
+            return result
+
+    def model_step(self, identity: str, payload: dict) -> dict:
+        # Model latency must not hold the SQLite write lock. This teaching CAS
+        # checks the whole workspace; production can use per-request revisions.
+        with sqlite3.connect(self.path) as db:
+            row = db.execute("SELECT revision, state FROM workspaces WHERE id = ?", (identity,)).fetchone()
+        if row is None:
+            raise PermissionError("实验空间不存在，请创建新空间")
+        if row[0] != source_revision():
+            raise ValueError("Python源码已变化，请新建实验空间")
+        workspace = Workspace(json.loads(row[1]), self.data_dir)
+        actor = workspace.principal(payload.get("role", "developer"))
+        assistant = ContextAssistant(workspace)
+        record, context = assistant.prepare(payload, actor)
+        decision, failure = None, None
+        provider = {"mode": record["mode"], "label": "模型调用尚未完成"}
+        try:
+            decision, provider = self.gateway.decide(record["mode"], context)
+        except ModelError as error:
+            failure = str(error)
+        with sqlite3.connect(self.path, timeout=10) as db:
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute("SELECT revision, state FROM workspaces WHERE id = ?", (identity,)).fetchone()
+            if current != row:
+                raise ValueError("等待模型期间实验空间发生变化，本次建议未提交；请重新读取后重试")
+            result = assistant.apply(payload, actor, decision, provider, failure)
             db.execute("UPDATE workspaces SET state = ? WHERE id = ?",
                        (json.dumps(workspace.snapshot(), ensure_ascii=False), identity))
             return result

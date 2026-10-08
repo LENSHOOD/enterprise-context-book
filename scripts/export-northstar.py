@@ -10,6 +10,31 @@ SRC = ROOT / "examples/enterprise-case/src"
 sys.path.insert(0, str(SRC))
 from tutorial_catalog import LESSONS
 from workbench import Workspace, SCENARIOS, source_revision
+from intelligence import ContextAssistant, DEMO_SOURCE
+from model_gateway import fixture_decision
+
+
+def assistant_samples():
+    workspace = Workspace()
+    assistant = ContextAssistant(workspace)
+    actor = workspace.principal("product")
+    source = workspace.dispatch({"op": "resource.register", "role": "product", "text": DEMO_SOURCE})
+    draft = workspace.dispatch({"op": "resource.propose", "role": "product", "id": source["id"]})
+    payload = {"id": draft["id"], "kind": "resource"}
+    _, context = assistant.prepare(payload, actor)
+    resource = assistant.apply(payload, actor, fixture_decision(context), {"mode": "fixture", "model": "authored-demo-v1"})
+    actor = workspace.principal("sre")
+    query = workspace.dispatch({"op": "assist.start", "role": "sre", "goal": "退款积压怎么查？"})
+    payload = {"id": query["id"]}
+    _, context = assistant.prepare(payload, actor)
+    query = assistant.apply(payload, actor, fixture_decision(context), {"mode": "fixture", "model": "authored-demo-v1"})
+    return {
+        "resource": {"sample": resource, "sources": [snippet("intelligence.py", "ContextAssistant.resource_candidate"),
+            snippet("intelligence.py", "materialize_resources"), snippet("intelligence.py", "ContextAssistant.dispatch")]},
+        "query": {"sample": query, "sources": [snippet("intelligence.py", "ContextAssistant.prepare"),
+            snippet("intelligence.py", "ContextAssistant.query_step"), snippet("workbench.py", "WorkspaceStore.model_step"),
+            snippet("model_gateway.py", "ModelGateway.decide")]},
+    }
 
 
 def snippet(filename, symbol):
@@ -40,6 +65,7 @@ def build_catalog():
         else:
             lesson["sample"] = workspace.dispatch({**lesson["request"], "role": lesson["role"]})
     return {"source_revision": source_revision(), "scenarios": SCENARIOS, "lessons": lessons,
+            "assistants": assistant_samples(), "assistant_source": DEMO_SOURCE,
             "sample_notice": "构建时由同一份 Python 代码生成的教学示例，不是当前浏览器实际运行结果。"}
 
 
