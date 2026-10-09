@@ -40,6 +40,25 @@ npm run lab
 
 <ContextAssist kind="query" />
 
+## 工作台怎样承载实验
+
+工作台是运行示例的工具：Vue 页面收集输入，`lab_server.py` 接收同源 HTTP 请求，`workbench.py` 调用 Python 核心并保存练习进展。书中第14—17章讲资源建设、查询和任务处理；下面的实现细节供需要修改工作台的读者查阅。
+
+<details>
+<summary>展开实验空间的保存、恢复与并发处理</summary>
+
+`Workspace` 保留任务条件、事件、上下文快照、政策修订和模拟运行状态。`WorkspaceStore.call()` 将一次普通请求中的读取、检查、修改与保存放在 SQLite 事务中；操作报错时不提交。数据库默认位于 `.northstar-lab/workspaces.sqlite3`。Cookie 选择当前空间，新建空间切换到另一份练习数据。
+
+`Workspace.context()` 根据所选工作线传入核心查询参数，在返回包外补上任务条件和工作事件，再保留快照。真正的查询计划、工具调用和公共组装位于 `context_flow.py`；网页不另做一套查询计算。核心 `TaskMemory` 保存动作事件，工作台还保存业务笔记、复核和快照，两者分别保留各自记录。
+
+修改政策或发布资源时，`Workspace._build()` 在私有数据副本中重新编译和校验。成功后才保存新状态，仓库原始样例不被改写。当前实现按整份空间保存 JSON，并保守地将旧任务标为需重新取证。
+
+模型调用由 `WorkspaceStore.model_step()` 协调。等待模型时释放数据库事务，返回后比较空间是否变化，再提交建议和工具结果。并发冲突会拒绝旧建议，但已经发出的模型请求仍可能计费。模型调用尚未完成时重启服务，也可能需要重新调用。
+
+空间绑定 Python 源码标识，修改代码后重启需要新建空间。SQLite 事务只保护本地模拟状态，不涵盖外部退款 API；接入真实业务时，需要第十章讨论的独立恢复与幂等机制。动作令牌保存在本地状态中而不返回页面，生产凭据还需专门保护。
+
+</details>
+
 ## 接入真实模型
 
 C8、C9 共用一个只返回 JSON 建议的模型接口。它接受 Chat Completions 兼容协议：请求包含 `model`、`messages`、`response_format: {"type":"json_object"}` 和 `max_tokens`，响应读取 `choices[0].message.content`。模型服务需要支持这些字段；不支持时会显示错误，不自动改变模式。

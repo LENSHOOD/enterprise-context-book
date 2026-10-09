@@ -30,6 +30,9 @@ const names: Record<string, string> = {
   materials: '实际取得的材料', interpretation: '解释草案', request_id: '请求ID',
   business_task_completed: '业务任务已完成', reason: '本步目的', step: '步骤',
   decision: '本步建议', result: '返回结果', provider: '决策来源',
+  query_plan: '取证计划', purpose: '取证目的', args: '查询条件', confirmation: '已确认口径',
+  context_kind: '上下文类型',
+  relation_types: '关系类型', allow_inverse_navigation: '允许反向查找', seed: '起始对象',
 }
 const simple = (v: any) => v === null || typeof v !== 'object'
 const display = (v: any) => v === null ? '未设置' : v === true ? '是' : v === false ? '否' : String(v)

@@ -22,4 +22,6 @@
 
 近期复核：[Northstar 工作台与交互教程（rc.21）](NORTHSTAR_INTERACTIVE_2026-10-07.md)。
 
-最新复核：[平台内部智能辅助实现与自审（rc.25）](CONTEXT_ASSISTANTS_2026-10-08.md)。
+近期复核：[平台内部智能辅助实现与自审（rc.25）](CONTEXT_ASSISTANTS_2026-10-08.md)。
+
+最新复核：[Northstar 共用流程与第四部分自审（rc.26）](NORTHSTAR_COMMON_FLOW_2026-10-09.md)。
