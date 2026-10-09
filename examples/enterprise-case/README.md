@@ -1,6 +1,6 @@
 # Northstar Commerce：渐进式企业上下文案例
 
-Northstar 是本书第四部分的可运行案例。读者先看到战略分析、影响分析和退款处置三条工作线的结果，再从原始来源逐步构造对象与检索；从能力问题、术语、概念和源映射编译知识模型；随后使用关系、Wiki、Context Package 和受控动作。这些工作横跨认知、决策与执行；创造任务由独立的 `examples/hardware-design/` W2 软硬件练习补充。
+Northstar 是本书第四部分的可运行案例。人或助手负责理解原始资料、提出模型和取证建议，程序负责校验、编译、查询与组装。战略分析、影响分析和退款处置共用 `ContextFlow` 的计划、读取和上下文组装流程，各自选用指标计算、关系导航或当前观察等工具。这些工作横跨认知、决策与执行；创造任务由独立的 `examples/hardware-design/` W2 软硬件练习补充。
 
 ## 本地交互工作台
 
@@ -30,7 +30,7 @@ Web 时钟由“推进61秒”按钮显式推进。政策更新由 `product` 角
 
 C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只读分析边界。来源、模型、观察和任务事件是资源；编译、治理、检索与组装是平台职责；本次选定的证据、进展、缺口和允许工具形成任务上下文。三者的完整关系见本书第 3、14 章。
 
-## 基础能力与智能辅助检查点
+## 沿资源建设与任务使用检查案例
 
 | 检查点 | 你完成的能力 | 主要文件 | 证明 |
 |---|---|---|---|
@@ -38,14 +38,14 @@ C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只�
 | C1 | 编译版本化对象并做 ACL-first BM25 | `src/build_baseline.py`、`src/context_demo.py` | `test_build_baseline.py` |
 | C2 | 加入离线语义代理、RRF 与时间语义 | `src/northstar.py` | `test_northstar.py` |
 | C3 | 从能力问题和企业语言编译、验证知识模型 | `data/modeling/`、`src/modeling.py` | 术语边界、时间边、实例闭合测试 |
-| C4 | 以能力问题约束图遍历，建立 Wiki、EA 检测和更新链 | `knowledge_views.py`、`Workspace.update_policy()` | 正反向导航、ACL、Wiki、EA、更新失效测试 |
-| C5 | 保存任务条件，组装上下文，记录快照与工作进展 | `NorthstarPlatform.context()`、`Workspace.context()` | Context Package 与持久恢复测试 |
+| C4 | 以能力问题约束图遍历，建立 Wiki、EA 检测和更新链 | `knowledge_views.py`、`build_knowledge.py`、`intelligence.py` | 正反向导航、ACL、Wiki、EA、更新失效测试 |
+| C5 | 明确取证计划，组装上下文，记录工作进展 | `context_flow.py`、`TaskMemory` | 共用流程、Context Package 与持久恢复测试 |
 | C6 | SRE 诊断、负责人确认、SRE 执行并验证 | `action_demo.py` | `test_action_boundary.py` |
-| C7 | C-level 只读战略分析：指标、分解、架构上下文、假设和缺口 | `data/strategy-context.json`、`src/strategy.py` | `test_strategy.py` |
+| C7 | 在共用流程中进行只读经营分析：指标、分解、企业背景、假设和缺口 | `context_flow.py`、`strategy.py`、`data/strategy-context.json` | `test_context_flow.py`、`test_strategy.py` |
 | C8 | 从原文提出类型、关系和能力问题，审核后重建模型与视图 | `src/intelligence.py` | 引用、类型、审核、修订和重启测试 |
 | C9 | 澄清请求、逐步取证、交付材料与缺口 | `src/intelligence.py`、`src/model_gateway.py` | 权限、确认、预算、并发和模型协议测试 |
 
-C0—C7 是不依赖大模型的基础流程。C8、C9 共享模型接口，默认使用手写脚本演示；选择 `http` 才会调用服务端配置的真实模型。内部助手完成的是资源维护或一次上下文请求，外部业务任务仍须另行验收。
+C0—C9 是练习编号。初始资料和模型保留了作者人工整理的结果；C8 展示从新原文到审核发布，C9 展示逐步调查。手工准备与助手建议进入相同的编译校验或读取工具，发布和任务确认仍由有权角色完成。C8、C9 共享模型接口，默认使用手写脚本演示；选择 `http` 才会调用服务端配置的真实模型。内部助手完成的是资源维护或一次上下文请求，外部业务任务仍须另行验收。
 
 ## 运行智能辅助
 

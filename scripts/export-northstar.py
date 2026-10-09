@@ -30,9 +30,9 @@ def assistant_samples():
     query = assistant.apply(payload, actor, fixture_decision(context), {"mode": "fixture", "model": "authored-demo-v1"})
     return {
         "resource": {"sample": resource, "sources": [snippet("intelligence.py", "ContextAssistant.resource_candidate"),
-            snippet("intelligence.py", "materialize_resources"), snippet("intelligence.py", "ContextAssistant.dispatch")]},
+            snippet("intelligence.py", "materialize_resources"), snippet("modeling.py", "validate_knowledge_base")]},
         "query": {"sample": query, "sources": [snippet("intelligence.py", "ContextAssistant.prepare"),
-            snippet("intelligence.py", "ContextAssistant.query_step"), snippet("workbench.py", "WorkspaceStore.model_step"),
+            snippet("intelligence.py", "ContextAssistant.query_step"), snippet("context_flow.py", "ContextFlow.read"),
             snippet("model_gateway.py", "ModelGateway.decide")]},
     }
 

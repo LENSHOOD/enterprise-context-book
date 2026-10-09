@@ -33,9 +33,10 @@ if str(SRC) not in sys.path:
 
 from knowledge_views import build_role_scoped_wiki, compare_architecture_claims, trace_dependency
 from build_knowledge import compile_knowledge
-from modeling import compile_domain_model, semantic_slice, validate_knowledge_base
+from modeling import compile_domain_model, validate_knowledge_base
 from retrieval import bm25, reciprocal_rank_fusion, semantic_proxy
 from strategy import StrategicContext
+from context_flow import ContextFlow
 
 READ_TOOLS = {
     "support": ["search_context", "get_evidence"],
@@ -499,88 +500,18 @@ class NorthstarPlatform:
         mode: str = "operational",
         definition_confirmation: dict | None = None,
     ) -> dict:
-        if mode == "strategic":
-            if any((graph_seed, runtime_resource, disabled_channels, competency_question_id, valid_at, observed_at)):
-                raise ValueError("strategic mode uses its explicit fixed-snapshot contract")
-            return self.strategic_context(question, principal, task_id, confirmation=definition_confirmation)
-        if mode != "operational":
-            raise ValueError(f"unknown context mode {mode}")
-        disabled_channels = disabled_channels or set()
-        evidence = self.search(question, principal, disabled_channels=disabled_channels, valid_at=valid_at, observed_at=observed_at)
-        competency_question = (
-            self.competency_question(competency_question_id)
-            if competency_question_id else None
-        )
-        relation_types = (
-            set(competency_question["requiredRelations"])
-            if competency_question else None
-        )
-        relations = (
-            self.trace(
-                graph_seed,
-                principal,
-                relation_types=relation_types,
-                allow_inverse_navigation=competency_question is not None,
-                valid_at=valid_at, observed_at=observed_at,
-            )
-            if graph_seed else []
-        )
-        evidence_documents = [self.by_id[item["id"]] for item in evidence]
-        observation = self.get_status(runtime_resource, principal) if runtime_resource else None
-        missing = []
-        if runtime_resource and observation is None:
-            missing.append(runtime_resource)
-        memories = self.memory.read(task_id, principal)
-        return {
-            "trace_id": f"ctx:{principal.tenant}:{task_id}:{len(memories) + 1}",
-            "manifest": self.manifest,
-            "principal": {"user_id": principal.user_id, "role": principal.role, "tenant": principal.tenant},
-            "task_id": task_id,
-            "evidence": evidence,
-            "relations": relations,
-            "semantic_contract": semantic_slice(
-                self.domain_model,
-                evidence_documents,
-                relations,
-                competency_question=competency_question,
-            ),
-            "observations": [observation] if observation else [],
-            "memories": memories,
-            "missing": missing,
-            "degraded_channels": sorted(disabled_channels),
-            "allowed_tools": self.allowed_tools(principal, task_id),
-            "task_state": self.task_state(task_id, principal),
-        }
+        return ContextFlow(self).run(question, principal, task_id, mode=mode,
+            graph_seed=graph_seed, runtime_resource=runtime_resource,
+            disabled_channels=disabled_channels, competency_question_id=competency_question_id,
+            valid_at=valid_at, observed_at=observed_at, definition_confirmation=definition_confirmation)
 
     def strategic_context(
         self, question: str, principal: Principal, task_id: str = "strategy-review",
         *, confirmation: dict | None = None,
     ) -> dict:
-        """Return the enterprise-level, read-only strategic Context Package.
-
-        C7 deliberately uses a different retrieval surface from the operational
-        incident path, but it goes through the same platform entry point and
-        receives the same manifest, principal, task, and action-boundary fields.
-        """
-        package = self.strategy_context.package(
-            question,
-            {
-                "user_id": principal.user_id,
-                "role": principal.role,
-                "tenant": principal.tenant,
-            },
-            confirmation=confirmation,
-        )
-        return {
-            "trace_id": f"ctx:{principal.tenant}:{task_id}:strategic",
-            "manifest": self.manifest,
-            "context_kind": "strategic",
-            "task_id": task_id,
-            "memories": [],
-            "observations": [],
-            "task_state": "opened",
-            **package,
-        }
+        """Compatibility entry; strategic requests use the common context flow."""
+        return self.context(question, principal, task_id, mode="strategic",
+                            definition_confirmation=confirmation)
 
 
 def main() -> None:

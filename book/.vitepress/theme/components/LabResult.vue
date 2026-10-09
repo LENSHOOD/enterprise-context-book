@@ -9,7 +9,7 @@ const rest = computed(() => Object.fromEntries(Object.entries(data.value).filter
   'evidence', 'documents', 'relations', 'wiki', 'enterprise', 'memories', 'performance',
   'enterprise_context', 'context_layers', 'principal', 'trace_id', 'manifest',
   'id', 'kind', 'owner', 'conditions', 'state', 'preview', 'receipt', 'verification',
-  'snapshots', 'events', 'stale', 'package', 'approval_only',
+  'snapshots', 'events', 'stale', 'package', 'approval_only', 'query_plan',
 ].includes(key))))
 const events = computed(() => props.result?.events || data.value.memories || [])
 const stateNames: Record<string, string> = { opened: '已创建', diagnosing: '诊断中', action_proposed: '等待批准',
@@ -30,6 +30,10 @@ const eventNames: Record<string, string> = { task_created: '创建任务', conte
     <div v-if="result.receipt" class="ns-block"><h4>执行回执</h4><LabFields :value="result.receipt" /></div>
     <div v-if="result.verification" class="ns-block"><h4>结果验证</h4><LabFields :value="result.verification" /><p class="ns-muted">队列下降只表示本次有限检查通过，不表示全部退款到账或根因已经修复。</p></div>
     <p v-if="result.package" class="ns-muted">下方材料来自最近一次构造的上下文快照。包内状态和允许工具记录的是当时情况；当前任务进展以上方状态与服务端检查为准。</p>
+    <div v-if="data.query_plan?.length" class="ns-block"><h4>本次取证计划</h4>
+      <p class="ns-muted">程序按以下计划读取材料。遇到尚未确认的指标口径，会先返回待确认项。</p>
+      <ol><li v-for="(step, index) in data.query_plan" :key="index"><strong>{{ step.tool }}</strong> · {{ step.purpose }}<details><summary>查看查询条件</summary><LabFields :value="step.args" /></details></li></ol>
+    </div>
     <div v-if="data.performance" class="ns-block">
       <h4>同一口径下的经营表现</h4>
       <div class="ns-metrics"><div><small>H1</small><strong>{{ data.performance.total.h1 }}</strong></div><div><small>H2</small><strong>{{ data.performance.total.h2 }}</strong></div><div><small>变化额</small><strong>{{ data.performance.total.delta }}</strong></div><div><small>与目标的差距</small><strong>{{ data.performance.target_gap }}</strong></div></div>

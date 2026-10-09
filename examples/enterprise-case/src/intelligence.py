@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 import re
 import secrets
+from context_flow import ContextFlow
 
 
 DEMO_SOURCE = """# 退款限流核对说明
@@ -303,6 +304,7 @@ class ContextAssistant:
                 "metric": set(), "clarify": {"question"}, "finish": {"summary", "missing"}}
         exact(args, keys[action])
         p = self.w.platform
+        flow = ContextFlow(p)
         if action == "clarify":
             self.pending(record, {"question": text(args["question"], "澄清问题")})
             return {"status": "needs_confirmation"}
@@ -329,21 +331,23 @@ class ContextAssistant:
             record["snapshots"].append(deepcopy(package))
             return {"status": "ready_for_review", "note": "已交付材料，业务任务尚未宣告完成"}
         if action == "search":
-            return {"evidence": p.search(text(args["question"], "检索问题"), actor)[:8]}
+            result = flow.read("search", {"question": text(args["question"], "检索问题")}, actor)
+            return {"evidence": result["evidence"][:8]}
         if action == "trace":
             seed = text(args["seed"], "起点ID", 150)
             if seed not in {x["id"] for x in self.catalog(actor)}:
                 raise ValueError("起点不可用")
-            return {"relations": p.trace(seed, actor)}
+            return flow.read("trace", {"seed": seed}, actor)
         if action == "wiki":
-            return {"wiki": p.build_wiki(actor)}
+            return flow.read("wiki", {}, actor)
         if action == "observe":
             if args["resource"] != "refund-queue":
                 raise ValueError("本例只有 refund-queue 观察入口")
-            observation = p.get_status("refund-queue", actor)
+            readings = flow.read("observe", {"resource": "refund-queue"}, actor)["observations"]
+            observation = readings[0] if readings else None
             return {"observation": observation, "missing": [] if observation else ["队列观察不可用或已过期"]}
-        result = p.strategic_context(record["conditions"]["goal"], actor, record["id"],
-                                     confirmation=record.get("metric_confirmation"))
+        result = flow.read("metric", {"question": record["conditions"]["goal"],
+                           "confirmation": record.get("metric_confirmation")}, actor)
         if result.get("status") == "needs_clarification":
             self.pending(record, {"metric_contract": p.strategy_context.definition_confirmation(),
                                   "question": "请核对完整的指标、期间、范围和版本；只支持这份教学契约。"})
