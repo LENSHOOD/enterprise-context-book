@@ -12,6 +12,7 @@ from tutorial_catalog import LESSONS
 from workbench import Workspace, SCENARIOS, source_revision
 from intelligence import ContextAssistant, DEMO_SOURCE
 from model_gateway import fixture_decision
+from resource_views import book_views, mermaid
 
 
 def assistant_samples():
@@ -73,4 +74,9 @@ if __name__ == "__main__":
     output = ROOT / "book/.vitepress/theme/generated/northstar.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(build_catalog(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for name, view in book_views().items():
+        (output.parent / (name + ".md")).write_text(
+            "```mermaid\n" + mermaid(view) + "\n```\n\n"
+            + f'来源：已校验资源 `{view["manifest"]}`；查看角色 `{view["role"]}`，资料时点 `{view["as_of"]}`。\n',
+            encoding="utf-8")
     print(f"Northstar snippets + samples: {output.relative_to(ROOT)}")

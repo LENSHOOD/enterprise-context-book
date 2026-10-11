@@ -19,6 +19,8 @@ SYNONYMS = {
     "积压": {"backlog", "lag", "queue"},
     "影响": {"impact", "consumer", "依赖"},
     "代码": {"code", "symbol", "实现"},
+    "消费者": {"consumer"},
+    "测试": {"test", "tests"},
 }
 
 

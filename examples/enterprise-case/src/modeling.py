@@ -410,7 +410,9 @@ def semantic_slice(
     observed_relation_names = {edge["type"] for edge in edges}
     for relation_name in observed_relation_names:
         relation = model["relations"][relation_name]
-        observed_type_names.update((relation["from"], relation["to"]))
+        for side in ("from", "to"):
+            endpoint = relation[side]
+            observed_type_names.update(endpoint if isinstance(endpoint, list) else [endpoint])
     type_names = set(observed_type_names)
     relation_names = set(observed_relation_names)
     competency_coverage = None
@@ -433,7 +435,7 @@ def semantic_slice(
         type_names = required_types
         relation_names = required_relations
     glossary_term_ids = {
-        model["entityTypes"][name]["glossaryTerm"] for name in type_names
+        model["entityTypes"][name].get("glossaryTerm") for name in type_names
     }
     result = {
         "model_id": model["modelId"],
