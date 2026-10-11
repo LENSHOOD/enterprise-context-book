@@ -38,7 +38,7 @@ C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只�
 | C1 | 编译版本化对象并做 ACL-first BM25 | `src/build_baseline.py`、`src/context_demo.py` | `test_build_baseline.py` |
 | C2 | 加入离线语义代理、RRF 与时间语义 | `src/northstar.py` | `test_northstar.py` |
 | C3 | 从能力问题和企业语言编译、验证知识模型 | `data/modeling/`、`src/modeling.py` | 术语边界、时间边、实例闭合测试 |
-| C4 | 以能力问题约束图遍历，建立 Wiki、EA 检测和更新链 | `knowledge_views.py`、`build_knowledge.py`、`intelligence.py` | 正反向导航、ACL、Wiki、EA、更新失效测试 |
+| C4 | 从退款业务入口查到监控与手册，比较关系、Wiki 和架构视图 | `resource_discovery.py`、`knowledge_views.py`、`build_knowledge.py` | 只读查证、角色边界、观察过期、正反向导航、Wiki、EA 测试 |
 | C5 | 明确取证计划，组装上下文，记录工作进展 | `context_flow.py`、`TaskMemory` | 共用流程、Context Package 与持久恢复测试 |
 | C6 | SRE 诊断、负责人确认、SRE 执行并验证 | `action_demo.py` | `test_action_boundary.py` |
 | C7 | 在共用流程中进行只读经营分析：指标、分解、企业背景、假设和缺口 | `context_flow.py`、`strategy.py`、`data/strategy-context.json` | `test_context_flow.py`、`test_strategy.py` |
@@ -55,13 +55,14 @@ C0—C9 是练习编号。初始资料和模型保留了作者人工整理的结
 | `build_baseline.py` / `build_knowledge.py` | 原文解析与工作资料适配 |
 | `modeling.py` / `strategy_resources.py` | 工作领域约定、经营指标快照各自的专门检查 |
 | `knowledge_views.py` / `resource_views.py` | 关系查询、Wiki、架构核对及从实际资源生成关系图 |
+| `resource_discovery.py` / `resource_demo.py` | 网页与命令行共用的退款查证路线，以及命令行入口 |
 | `context_flow.py` / `strategy.py` | 共同查询流程，以及经营工具的口径确认与计算 |
 | `task_state.py` / `action_lifecycle.py` | 任务身份、记忆及独立的动作审批与验证 |
 | `northstar.py` | 组装上述能力，提供调用入口、权限与时间筛选、运行观察 |
 | `intelligence.py` / `model_gateway.py` | 有边界的资源建议与上下文调查 |
 | `workbench.py` / `lab_server.py` | 承载本地练习的保存、HTTP 与网页接口 |
 
-从业务入口发现运行资源：在仓库根目录执行 `python3 examples/enterprise-case/src/resource_demo.py`。脚本先搜索退款能力，再沿流程、服务和部署关系发现监控入口；输出统一构建报告、引用路径、手册和842条的初始观察，不执行操作。它使用明确写出的调查路线。
+从业务入口发现运行资源：在工作台选择 **C4 → 退款业务查证**，使用 SRE 角色执行；或在仓库根目录执行 `python3 examples/enterprise-case/src/resource_demo.py`。两者共用 `resource_discovery.py`：先搜索退款能力，再沿流程、服务和部署关系发现监控入口，返回对象正文、引用路径、手册及842条初始观察。网页按四步呈现结果，可切换角色或推进61秒验证边界。路线明确写在代码中，不调用模型、不执行业务操作，也尚未自动进入 C9 或 C6 的任务包。C4 的关系导航、Wiki 和架构核对仍可切换使用。
 
 `data/refund-map.json` 对应 `data/raw/business/refund-journey.md` 的已核对解释，定义业务步骤、例外与部署联系。该来源进入同一个 `compile_resources()`，关系图随 `npm run lab:catalog` 自动生成。书中的图是构建时固定快照，修改资料后要重新构建；实时 Wiki 与查询在本地使用当前资源。
 

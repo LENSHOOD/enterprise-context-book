@@ -25,7 +25,7 @@ const origin = ref(''), tasks = ref<any[]>([]), selectedTask = ref(''), clock = 
 const source = computed(() => lesson.value.sources[sourceIndex.value] || lesson.value.sources[0])
 const activeTask = computed(() => tasks.value.find(t => t.id === selectedTask.value))
 const canRun = computed(() => ready.value && hasSession.value && !busy.value)
-const panels = { resources: '资源目录', search: '检索实验', model: '模型与语义', trace: '关系导航', wiki: 'Wiki', architecture: '架构核对', tasks: '任务空间', update: '资源更新' }
+const panels = { resources: '资源目录', search: '检索实验', model: '模型与语义', discovery: '退款业务查证', trace: '关系导航', wiki: 'Wiki', architecture: '架构核对', tasks: '任务空间', update: '资源更新' }
 const roles = { developer: '开发者', support: '客服', sre: '值班 SRE', incident_commander: '事故负责人', executive: '经营负责人', strategy: '战略分析', revops: '营收运营', product: '产品负责人' }
 const scenarioNames = { change: '代码变更影响', incident: '退款积压处置', strategy: '经营分析' }
 
@@ -78,7 +78,7 @@ function createTask() {
 }
 function sample() {
   result.value = lesson.value.sample
-  origin.value = catalog.sample_notice
+  origin.value = `${catalog.sample_notice} 示例身份：${lesson.value.role}；操作：${panels[lesson.value.panel as keyof typeof panels]}。`
   error.value = ''
 }
 watch(scenario, () => { goal.value = catalog.scenarios[scenario.value].goal })
@@ -146,6 +146,7 @@ onUnmounted(() => window.removeEventListener('northstar-space-created', spaceCha
       <p class="ns-muted">留空采用运行练习时钟。查看经营资料时，将两项设为 2027-01-02T00:00:00Z，并使用获准的经营角色。</p>
     </div>
     <label v-if="panel === 'trace'" class="ns-label">起点对象<input v-model="seed" :disabled="busy" /></label>
+    <p v-if="panel === 'discovery'" class="ns-build">本实验从“消费者退款能力”开始，运行明确写好的查证路线，按四步展示结果。队列标识从关系中的监控入口取得；本次只读资料和状态，不调用模型，也不执行重放。</p>
     <div v-if="panel === 'update'"><label class="ns-label">追加到政策副本的说明<textarea v-model="note" maxlength="500" :disabled="busy" /></label><p class="ns-muted">由 product 角色维护。将重建当前空间资源，并标记旧任务需重新取证；不修改仓库原文件。</p></div>
     <template v-if="panel === 'tasks'">
       <div class="ns-task-create">
@@ -164,9 +165,9 @@ onUnmounted(() => window.removeEventListener('northstar-space-created', spaceCha
         </div>
         <template v-if="!activeTask.approval_only"><label class="ns-label">工作笔记或复核说明<textarea v-model="taskNote" :disabled="busy" placeholder="已核对什么、还缺什么；用户声明仍需证据支持" /></label><div class="ns-controls"><button :disabled="!canRun || !taskNote.trim()" @click="taskAction('task.note')">保存工作笔记</button><button v-if="activeTask.kind !== 'incident'" :disabled="!canRun || !taskNote.trim() || activeTask.state !== 'ready_for_review'" @click="taskAction('task.review')">登记人工复核</button></div></template>
       </div>
-      <div class="ns-clock"><span>教学时钟：{{ clock || '尚未连接' }}</span><button :disabled="!canRun" @click="run({ op: 'clock.advance' })">推进61秒，测试过期</button><small>时钟不会随现实等待自动前进。过期后可新建空间重做实验。</small></div>
     </template>
-    <button v-else class="ns-run" :disabled="!canRun" @click="experiment">{{ panel === 'update' ? '更新政策并重建' : '执行当前实验' }}</button>
+    <button v-else class="ns-run" :disabled="!canRun" @click="experiment">{{ panel === 'update' ? '更新政策并重建' : panel === 'discovery' ? '执行退款查证路线' : '执行当前实验' }}</button>
+    <div v-if="['tasks', 'discovery'].includes(panel)" class="ns-clock"><span>教学时钟：{{ clock || '尚未连接' }}</span><button :disabled="!canRun" @click="run({ op: 'clock.advance' })">推进61秒，测试过期</button><small>时钟不会随现实等待自动前进。推进后再次执行可检查观察过期；新建空间可重做实验。</small></div>
     <p v-if="busy" role="status">正在调用本地 Python…</p>
     <p v-if="error" class="ns-warning" role="alert">{{ error }}</p>
     <div v-if="result" class="ns-output" aria-live="polite"><p class="ns-origin">{{ origin }}</p><LabResult :result="result" /></div>
