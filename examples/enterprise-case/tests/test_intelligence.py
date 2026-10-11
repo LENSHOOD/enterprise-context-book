@@ -55,18 +55,21 @@ class IntelligenceTest(unittest.TestCase):
         draft = self.draft()
         self.assertEqual("needs_review", draft["state"])
         before = self.call("overview")["manifest"]
-        self.assertEqual([], self.call("search", question="限流窗口")["evidence"])
+        self.assertNotIn(draft["source"]["id"],
+                         {hit["id"] for hit in self.call("search", question="限流窗口")["evidence"]})
         published = self.publish(draft)
         self.assertEqual("published", published["state"])
         self.assertFalse(published["stale"])
         self.assertNotEqual(before, published["after_manifest"])
         self.store = WorkspaceStore(self.path, gateway=self.gateway)
-        self.assertTrue(self.call("search", "sre", question="限流窗口")["evidence"])
+        self.assertIn(draft["source"]["id"],
+                      {hit["id"] for hit in self.call("search", "sre", question="限流窗口")["evidence"]})
         self.assertIn("DiagnosticNote", self.call("model")["semantic_contract"]["entity_types"])
         edges = self.call("trace", seed="service-refund-worker")["relations"]
         self.assertTrue(any(e["to"] == draft["source"]["id"] for e in edges))
         self.assertIn("限流窗口", json.dumps(self.call("wiki"), ensure_ascii=False))
-        self.assertEqual([], self.call("search", "support", question="限流窗口")["evidence"])
+        self.assertNotIn(draft["source"]["id"],
+                         {hit["id"] for hit in self.call("search", "support", question="限流窗口")["evidence"]})
         self.assertEqual(original, (DATA / "raw/manifest.json").read_bytes())
 
     def test_source_revise_preserves_history_and_rebuilds(self):

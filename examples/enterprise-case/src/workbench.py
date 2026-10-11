@@ -236,12 +236,13 @@ class Workspace:
             return {"manifest": p.manifest, "clock": self.now().isoformat(), "tasks": tasks,
                     "source_revision": source_revision(), "simulation": True}
         if op == "resources":
-            docs = p.current_documents(actor)
-            enterprise = []
-            if actor.role in p.strategy_context.data["fixture"]["acl"]:
-                enterprise = [{**item, "kind": p.strategy_context.types[item['id']]}
-                              for item in p.strategy_context.by_id.values()]
-            return {"documents": docs, "enterprise": enterprise, "manifest": p.manifest}
+            docs = p.current_documents(actor, valid_at=payload.get("valid_at") or None,
+                                       observed_at=payload.get("observed_at") or None)
+            snapshot_time = p.strategy_context.data["fixture"]["as_of"]
+            enterprise = [doc for doc in p.current_documents(actor, valid_at=snapshot_time,
+                          observed_at=snapshot_time) if doc["system"] == "sales"]
+            return {"documents": docs, "enterprise": enterprise,
+                    "enterprise_as_of": snapshot_time, "manifest": p.manifest}
         if op == "search":
             disabled = payload.get("disabled_channels", [])
             if not isinstance(disabled, list) or any(x not in ("bm25", "semantic_proxy") for x in disabled):
@@ -253,14 +254,19 @@ class Workspace:
                     "authorized_documents": len(p.current_documents(actor, valid_at=valid, observed_at=known)),
                     "degraded_channels": disabled, "manifest": p.manifest}
         if op == "model":
-            docs = p.current_documents(actor)
+            valid = payload.get("valid_at") or self.now().isoformat()
+            known = payload.get("observed_at") or self.now().isoformat()
+            docs = p.current_documents(actor, valid_at=valid, observed_at=known)
             ids = {d["id"] for d in docs}
-            edges = [e for e in p.edges if e["from"] in ids and e["to"] in ids]
+            edges = [e for e in p.edges if e["from"] in ids and e["to"] in ids
+                     and p._valid_at(e.get("time", {}), p._parse_instant(valid), p._parse_instant(known))]
             return {"semantic_contract": semantic_slice(p.domain_model, docs, edges), "relations": edges}
         if op == "trace":
-            return {"relations": p.trace(required_text(payload, "seed", 150), actor)}
+            return {"relations": p.trace(required_text(payload, "seed", 150), actor,
+                    valid_at=payload.get("valid_at") or None, observed_at=payload.get("observed_at") or None)}
         if op == "wiki":
-            return {"wiki": p.build_wiki(actor), "manifest": p.manifest}
+            return {"wiki": p.build_wiki(actor, valid_at=payload.get("valid_at") or None,
+                    observed_at=payload.get("observed_at") or None), "manifest": p.manifest}
         if op == "architecture":
             return p.architecture_consistency(actor)
         if op == "policy.update":

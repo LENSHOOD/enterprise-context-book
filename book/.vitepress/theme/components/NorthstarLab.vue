@@ -140,7 +140,10 @@ onUnmounted(() => window.removeEventListener('northstar-space-created', spaceCha
     <div v-if="panel === 'search'" class="ns-form">
       <label class="ns-label">查询问题<input v-model="question" :disabled="busy" /></label>
       <div class="ns-controls"><label><input v-model="disabledChannels" type="checkbox" value="bm25" :disabled="busy" /> 关闭 BM25</label><label><input v-model="disabledChannels" type="checkbox" value="semantic_proxy" :disabled="busy" /> 关闭离线语义代理</label></div>
+    </div>
+    <div v-if="['resources', 'search', 'model', 'trace', 'wiki'].includes(panel)" class="ns-form">
       <div class="ns-controls"><label class="ns-label">业务有效时间（可留空）<input v-model="validAt" placeholder="2026-07-01T12:00:00Z" :disabled="busy" /></label><label class="ns-label">平台已知时间（可留空）<input v-model="observedAt" placeholder="2026-08-27T10:00:00Z" :disabled="busy" /></label></div>
+      <p class="ns-muted">留空采用运行练习时钟。查看经营资料时，将两项设为 2027-01-02T00:00:00Z，并使用获准的经营角色。</p>
     </div>
     <label v-if="panel === 'trace'" class="ns-label">起点对象<input v-model="seed" :disabled="busy" /></label>
     <div v-if="panel === 'update'"><label class="ns-label">追加到政策副本的说明<textarea v-model="note" maxlength="500" :disabled="busy" /></label><p class="ns-muted">由 product 角色维护。将重建当前空间资源，并标记旧任务需重新取证；不修改仓库原文件。</p></div>

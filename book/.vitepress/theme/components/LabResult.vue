@@ -49,7 +49,7 @@ const eventNames: Record<string, string> = { task_created: '创建任务', conte
       </details>
     </div>
     <p v-else-if="'evidence' in data || 'documents' in data" class="ns-muted">本次没有可展示的证据。请检查角色、时间、检索通道及问题范围。</p>
-    <div v-if="data.enterprise?.length" class="ns-block"><h4>企业对象 · {{ data.enterprise.length }}</h4><p>从商业模式、目标和能力，继续查看组织、应用与数据。</p><LabFields :value="data.enterprise" /></div>
+    <div v-if="data.enterprise?.length" class="ns-block"><h4>经营快照目录 · {{ data.enterprise.length }}</h4><p>固定教学快照：{{ data.enterprise_as_of }}。从同一资源目录选出，供浏览；不是运行时钟下的当前观察。</p><LabFields :value="data.enterprise" /></div>
     <div v-if="relations.length" class="ns-block"><h4>对象之间的关系 · {{ relations.length }}</h4>
       <div class="ns-table-wrap"><table><thead><tr><th>起点</th><th>关系 →</th><th>终点</th><th>依据</th></tr></thead><tbody><tr v-for="(edge, i) in relations" :key="i"><td>{{ edge.from }}</td><td>{{ edge.type }}</td><td>{{ edge.to }}</td><td><details><summary>查看依据</summary><LabFields :value="edge" /></details></td></tr></tbody></table></div>
     </div>

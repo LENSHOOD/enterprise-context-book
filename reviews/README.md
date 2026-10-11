@@ -24,4 +24,6 @@
 
 近期复核：[平台内部智能辅助实现与自审（rc.25）](CONTEXT_ASSISTANTS_2026-10-08.md)。
 
-最新复核：[Northstar 共用流程与第四部分自审（rc.26）](NORTHSTAR_COMMON_FLOW_2026-10-09.md)。
+近期复核：[Northstar 共用流程与第四部分自审（rc.26）](NORTHSTAR_COMMON_FLOW_2026-10-09.md)。
+
+最新复核：[企业内容体系与统一资源编译（rc.27）](UNIFIED_RESOURCE_SYSTEM_2026-10-11.md)。

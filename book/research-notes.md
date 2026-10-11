@@ -2,6 +2,10 @@
 
 这份索引汇总了本书使用的企业知识管理、搜索、知识图谱、RAG、智能体记忆和代码知识库资料。正文在相关结论旁直接给出链接；如果想继续了解某个主题，可以从这里集中查找。项目版本和论文状态会继续变化，请以链接中的官方最新版本为准。
 
+## 企业语义与上下文层讲义 {#context-layer-slides}
+
+Indranil Bandyopadhyay（Forrester Principal Analyst），*Get Started On A Journey To Build AI Context Layer*，TIEMEA26 演示材料，21页。书稿参考了所提供的本地 PDF：第8—9页讨论本体、语义层和知识图谱，第10—11页补充政策、决策、行动结果及任务上下文，第13页强调逆向整理后的人工核验，第15页讨论先明确逻辑结构再选技术。本书未转载原 PDF，也未提供未经核实的公开下载地址。该材料用于说明互补关系，不作为企业内容分类的完整标准。
+
 ## 基础与综述
 
 - [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401)
