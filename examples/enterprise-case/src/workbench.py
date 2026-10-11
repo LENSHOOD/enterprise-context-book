@@ -21,6 +21,7 @@ from northstar import NorthstarPlatform, Principal, DEFAULT_FIXTURE_TIME
 from modeling import semantic_slice
 from intelligence import ContextAssistant, materialize_resources
 from model_gateway import ModelGateway, ModelError
+from resource_discovery import investigate_refund
 
 DATA = Path(__file__).parents[1] / "data"
 ROLES = ("developer", "support", "sre", "incident_commander", "executive", "strategy", "revops", "product")
@@ -269,6 +270,8 @@ class Workspace:
                     observed_at=payload.get("observed_at") or None), "manifest": p.manifest}
         if op == "architecture":
             return p.architecture_consistency(actor)
+        if op == "discovery":
+            return investigate_refund(p, actor)
         if op == "policy.update":
             return self.update_policy(payload, actor)
         if op == "task.create":
