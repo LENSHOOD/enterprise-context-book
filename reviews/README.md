@@ -28,4 +28,6 @@
 
 近期复核：[企业内容体系与统一资源编译（rc.27）](UNIFIED_RESOURCE_SYSTEM_2026-10-11.md)。
 
-最新复核：[C4 退款业务查证交互实验（rc.28）](C4_REFUND_DISCOVERY_2026-10-11.md)。
+近期复核：[C4 退款业务查证交互实验（rc.28）](C4_REFUND_DISCOVERY_2026-10-11.md)。
+
+最新复核：[企业资源的定义、记录与视图（rc.29）](RESOURCE_REPRESENTATION_2026-10-12.md)。
