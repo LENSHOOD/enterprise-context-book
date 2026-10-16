@@ -37,7 +37,7 @@ function name(id: string) {
       <p v-else>本次没有取得可见的处置手册。</p>
       <ul v-if="result.missing.length" class="ns-warning"><li v-for="item in result.missing" :key="item">{{ item }}</li></ul>
       <p>{{ result.next_step }}</p>
-      <p class="ns-muted">这条路线尚未自动接入 C9 的规划或 C6 的任务包。C9 练习助手选择下一步，C6 练习批准和执行；本实验展示资料怎样相连、当前状态怎样取得。</p>
+      <p class="ns-muted">C4与C9共用读取、组装和交付，分别练习固定路线与助手选择下一步。需要处理积压时，另在C6创建业务任务，准备具体动作并取得批准。</p>
     </div>
   </div>
 </template>

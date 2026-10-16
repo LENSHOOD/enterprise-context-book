@@ -2,7 +2,7 @@
 
 > 本章要回答：面对规模庞大、不断变化的 Linux 内核，前面介绍的知识库方法还能怎样落地？
 
-eBPF（extended Berkeley Packet Filter）是一种让受约束程序在 Linux 内核中运行的机制。用户态先把程序装载进内核；verifier 在执行前验证程序的控制流与内存访问，通过后程序可以被即时编译（JIT）并挂接到内核事件点（hook）。map 是 eBPF 程序之间以及程序与用户态之间共享数据的结构。理解“装载—验证—执行—挂接”和 map 这两条主线，就足以跟随本章；CO-RE、libbpf、BTF 与 Kconfig 会在需要时说明。[Linux BPF 文档](https://docs.kernel.org/bpf/)
+eBPF（extended Berkeley Packet Filter）是一种让受约束程序在 Linux 内核中运行的机制。用户态先把程序装载进内核；verifier 在执行前验证程序的控制流与内存访问，通过后程序可以被即时编译（JIT）并挂接到内核事件点（hook）。map 是 eBPF 程序之间以及程序与用户态之间共享数据的结构。理解“装载与验证—挂接—事件触发执行”和 map 这两条主线，就足以跟随本章；CO-RE、libbpf、BTF 与 Kconfig 会在需要时说明。[Linux BPF 文档](https://docs.kernel.org/bpf/)
 
 Northstar 演示了经营分析、变更分析与受控处置，Linux 内核则检验代码资源建设能否面对真实规模、宏、条件编译、函数指针、跨目录调用和长期演化。本章选择 eBPF 子系统作为第一块范围：它拥有清晰的用户态入口、复杂的 verifier、丰富的 map 与程序类型、BTF 结构信息以及大量官方文档，适合练习代码导航与证据定位。当前示例交付的能力如下；后面的领域建模和高精度路线属于设计目标，不能从命令运行成功推断它们都已实现。
 

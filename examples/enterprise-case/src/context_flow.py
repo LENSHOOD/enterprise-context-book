@@ -1,8 +1,11 @@
 """Shared context plan, read executor and package assembly; no web/session code."""
 from copy import deepcopy
 from dataclasses import asdict
+from time import perf_counter
 
 from modeling import semantic_slice
+from context_delivery import deliver, sales_documents
+from refund_records import read_records
 
 
 class ContextFlow:
@@ -34,21 +37,28 @@ class ContextFlow:
                               "valid_at": valid_at, "observed_at": observed_at}, "purpose": "查清对象关系和影响路径"})
             if runtime_resource:
                 steps.append({"tool": "observe", "args": {"resource": runtime_resource}, "purpose": "核对当前状态"})
-        return {"mode": mode, "steps": steps, "competency_question": competency}
+        return {"mode": mode, "question": question, "steps": steps, "competency_question": competency}
 
     def read(self, tool, args, principal):
         """Run a read through the platform's existing permission and time checks."""
         p = self.platform
         if tool == "search":
-            return {"evidence": p.search(args["question"], principal,
+            return {"evidence": p.search(args["question"], principal, limit=args.get("limit", 5),
                     disabled_channels=set(args.get("disabled_channels", [])),
                     valid_at=args.get("valid_at"), observed_at=args.get("observed_at"))}
         if tool == "trace":
             types = args.get("relation_types")
             return {"relations": p.trace(args["seed"], principal,
+                    max_hops=args.get("max_hops", 2),
                     relation_types=set(types) if types is not None else None,
                     allow_inverse_navigation=args.get("allow_inverse_navigation", False),
                     valid_at=args.get("valid_at"), observed_at=args.get("observed_at"))}
+        if tool == "lookup":
+            requested = set(args["ids"])
+            docs = p.current_documents(principal, valid_at=args.get("valid_at"),
+                                       observed_at=args.get("observed_at"))
+            return {"evidence": [p._hit(doc, 1.0, ["lookup"]) for doc in docs
+                                 if doc["id"] in requested]}
         if tool == "wiki":
             return {"wiki": p.build_wiki(principal)}
         if tool == "observe":
@@ -56,8 +66,18 @@ class ContextFlow:
             return {"observations": [observation] if observation else [],
                     "missing": [] if observation else [args["resource"]]}
         if tool == "metric":
-            return p.strategy_context.package(args["question"], asdict(principal),
-                                               confirmation=args.get("confirmation"))
+            catalog = {doc["id"]: doc for doc in sales_documents(p, principal)}
+            if not set(p.strategy_context.by_id) <= set(catalog):
+                # The fixed aggregate exposes the entire snapshot; a partially
+                # authorized snapshot cannot safely produce that aggregate.
+                raise PermissionError("当前身份不能读取完整的销售快照")
+            result = p.strategy_context.package(args["question"], asdict(principal),
+                                                confirmation=args.get("confirmation"))
+            for item in result.get("evidence", []):
+                item["version"] = catalog[item["id"]]["version"]
+            return result
+        if tool == "business":
+            return read_records(p, principal)
         raise ValueError("unknown context read tool")
 
     def assemble(self, plan, results, principal, task_id):
@@ -78,17 +98,40 @@ class ContextFlow:
             package["semantic_contract"] = semantic_slice(p.domain_model,
                 [p.by_id[item["id"]] for item in package["evidence"]], package["relations"],
                 competency_question=plan["competency_question"])
-            package["degraded_channels"] = next((s["args"]["disabled_channels"] for s in plan["steps"] if s["tool"] == "search"), [])
+            package["degraded_channels"] = next((s["args"].get("disabled_channels", []) for s in plan["steps"] if s["tool"] == "search"), [])
             package["allowed_tools"] = p.allowed_tools(principal, task_id)
             package["task_state"] = p.task_state(task_id, principal)
-        return package
+        return deliver(package, conditions={"goal": plan.get("question", "本轮上下文调查"),
+                                            "scope": plan["mode"]})
 
-    def run(self, question, principal, task_id, **choices):
-        plan = self.plan(question, **choices)
+    def execute(self, plan, principal, task_id):
+        """Execute a server-authored plan with dependent reads and measured output."""
         results = []
+        executed, measurements = [], []
         for step in plan["steps"]:
-            result = self.read(step["tool"], step["args"], principal)
+            args = deepcopy(step["args"])
+            if "relations_from" in step:
+                edges = results[step["relations_from"]].get("relations", [])
+                args["ids"] = sorted(set(args.get("ids", [])) |
+                                     {edge[end] for edge in edges for end in ("from", "to")})
+            started = perf_counter()
+            result = self.read(step["tool"], args, principal)
+            elapsed_ms = round((perf_counter() - started) * 1000, 3)
+            executed.append({"tool": step["tool"], "args": args, "purpose": step["purpose"]})
+            measurements.append({"tool": step["tool"], "elapsed_ms": elapsed_ms,
+                "returned_items": sum(len(result.get(key, [])) for key in
+                                      ("evidence", "relations", "observations")),
+                "evidence_chars": sum(len(item.get("evidence", ""))
+                                      for item in result.get("evidence", []))})
             results.append(result)
             if result.get("status") == "needs_clarification":
                 break
-        return self.assemble(plan, results, principal, task_id)
+        package = self.assemble({**plan, "steps": executed}, results, principal, task_id)
+        package["execution_report"] = {"tool_calls": len(executed), "steps": measurements,
+            "elapsed_ms": round(sum(item["elapsed_ms"] for item in measurements), 3),
+            "returned_items": sum(item["returned_items"] for item in measurements),
+            "evidence_chars": sum(item["evidence_chars"] for item in measurements)}
+        return deliver(package)
+
+    def run(self, question, principal, task_id, **choices):
+        return self.execute(self.plan(question, **choices), principal, task_id)

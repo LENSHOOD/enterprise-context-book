@@ -1,0 +1,22 @@
+{
+  "fixture": true,
+  "tenant": "northstar",
+  "acl": ["support", "sre"],
+  "as_of": "2026-08-27T10:00:00+00:00",
+  "environment": "teaching-business-snapshot",
+  "grain": "one row per refund application; attempts are separate child records",
+  "applications": [
+    {"id":"R1","stage":"approval"}, {"id":"R2","stage":"approval"},
+    {"id":"R3","stage":"approval"}, {"id":"R4","stage":"execution"},
+    {"id":"R5","stage":"execution"}, {"id":"R6","stage":"execution"},
+    {"id":"R7","stage":"execution"}, {"id":"R8","stage":"completed"}
+  ],
+  "attempts": [
+    {"id":"A1","application_id":"R4","result":"retry"},
+    {"id":"A2","application_id":"R4","result":"retry"},
+    {"id":"A3","application_id":"R5","result":"pending"},
+    {"id":"A4","application_id":"R6","result":"pending"},
+    {"id":"A5","application_id":"R7","result":"pending"},
+    {"id":"A6","application_id":"R8","result":"completed"}
+  ]
+}

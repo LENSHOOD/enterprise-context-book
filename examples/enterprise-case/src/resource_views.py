@@ -59,7 +59,7 @@ def mermaid(view):
         lines.append(f'  {nodes[doc["id"]]}["{label(title)}"]')
     for edge in sorted(view["relations"], key=lambda e: (e["from"], e["type"], e["to"])):
         meaning = label(LABELS.get(edge["type"], edge["type"]))
-        arrow = f'-. "{meaning}" .->' if edge.get("evidence_tier") == "candidate" else f'-->|"{meaning}"|'
+        arrow = f'-. "{meaning}" .->' if edge.get("review_status") == "candidate" else f'-->|"{meaning}"|'
         lines.append(f'  {nodes[edge["from"]]} {arrow} {nodes[edge["to"]]}')
     return "\n".join(lines)
 

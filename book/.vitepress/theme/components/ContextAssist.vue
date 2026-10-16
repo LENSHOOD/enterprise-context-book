@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import catalogData from '../generated/northstar.json'
 import LabFields from './LabFields.vue'
+import ContextDelivery from './ContextDelivery.vue'
 const props = defineProps<{ kind: 'resource' | 'query' }>()
 const catalog: any = catalogData
 const resource = computed(() => props.kind === 'resource')
@@ -108,8 +109,11 @@ onUnmounted(() => window.removeEventListener('northstar-space-created', changed)
         <template v-if="result.state === 'needs_review'"><label class="ns-label">审核说明<textarea v-model="review" :disabled="busy" /></label><div class="ns-controls"><button :disabled="!canRun || preview || result.stale || !review.trim()" @click="run('resource.publish', { id: result.id, confirmation_hash: result.confirmation_hash, note: review })">审核通过并发布</button><button :disabled="!canRun || preview || !review.trim()" @click="run('resource.reject', { id: result.id, note: review })">拒绝候选</button></div></template>
       </div>
       <div v-if="result.state === 'published'" class="ns-block"><h4>发布后有什么变化</h4><p>新对象、模型、关系和 Wiki 已进入当前空间。可回到 C1、C3、C4 查询核对。</p><LabFields :value="{ before_manifest: result.manifest, after_manifest: result.after_manifest, object: result.published_object }" /><details><summary>重建的 Wiki</summary><LabFields :value="result.wiki" /></details></div>
-      <div v-if="result.history?.length" class="ns-block"><h4>每一步做了什么</h4><ol class="ns-timeline"><li v-for="(step, i) in result.history" :key="i"><strong>{{ step.event === 'human_confirmed' ? '人确认了任务条件' : `第 ${step.step} 步 · ${step.decision?.action || step.purpose}` }}</strong><p v-if="step.decision?.reason">{{ step.decision.reason }}</p><p v-if="step.error" class="ns-warning">{{ step.error }}</p><details><summary>查看本步输入决定和结果</summary><LabFields :value="step" /></details></li></ol></div>
-      <div v-if="result.package" class="ns-block"><h4>交给请求方的上下文包</h4><p>这里交付取证材料，尚未宣告业务问题已经解决。模型的解释仍需复核。</p><LabFields :value="result.package" /></div>
+      <div v-if="result.history?.length" class="ns-block"><h4>每一步做了什么</h4><ol class="ns-timeline"><li v-for="(step, i) in result.history" :key="i"><strong>{{ step.event === 'human_confirmed' ? (step.confirmed?.metric_contract ? '人确认了指标口径' : step.confirmed?.conditions ? '人确认了任务条件' : '人回答了澄清问题') : `第 ${step.step} 步 · ${step.decision?.action || step.purpose}` }}</strong><p v-if="step.decision?.reason">{{ step.decision.reason }}</p><p v-if="step.error" class="ns-warning">{{ step.error }}</p><details><summary>查看本步输入决定和结果</summary><LabFields :value="step" /></details></li></ol></div>
+      <div v-if="result.package" class="ns-block"><h4>交给请求方的上下文包</h4><ContextDelivery :package="result.package" />
+        <button :disabled="!canRun || preview || !goal.trim()" @click="run('assist.start', { goal, mode, previous_package: result.package.continuation_input })">携上次引用新建调查</button>
+        <details><summary>完整交付字段</summary><LabFields :value="result.package" /></details>
+      </div>
       <details class="ns-raw"><summary>检查原始 JSON</summary><pre>{{ JSON.stringify(result, null, 2) }}</pre></details>
     </div>
     <p v-if="busy" role="status">正在处理；页面最多等候60秒，模型网络读写超时设为45秒。页面超时不等于服务端已取消，请先恢复记录再决定是否重试。等待模型期间不会锁住其他实验的写入。</p>

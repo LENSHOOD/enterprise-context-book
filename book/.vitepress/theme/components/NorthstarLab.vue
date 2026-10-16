@@ -14,6 +14,7 @@ const question = ref(lesson.value.request?.question || '取消事件有哪些 co
 const disabledChannels = ref<string[]>(lesson.value.request?.disabled_channels || [])
 const validAt = ref(''), observedAt = ref('')
 const seed = ref('event-order-cancelled')
+const estimatedBudget = ref(60)
 const note = ref('新增核验说明：checkpointalpha')
 const taskNote = ref('')
 const scenario = ref(lesson.value.scenario || 'change')
@@ -22,10 +23,17 @@ const sourceIndex = ref(0)
 const ready = ref(false), hasSession = ref(false), busy = ref(false)
 const status = ref('公开阅读模式'), error = ref(''), result = ref<any>(null)
 const origin = ref(''), tasks = ref<any[]>([]), selectedTask = ref(''), clock = ref('')
+const previousDiscovery = ref<any>(null)
+const discoveryResult = ref<any>(null), comparisonDiscovery = ref<any>(null)
+function clearDiscovery() {
+  previousDiscovery.value = null
+  discoveryResult.value = null
+  comparisonDiscovery.value = null
+}
 const source = computed(() => lesson.value.sources[sourceIndex.value] || lesson.value.sources[0])
 const activeTask = computed(() => tasks.value.find(t => t.id === selectedTask.value))
 const canRun = computed(() => ready.value && hasSession.value && !busy.value)
-const panels = { resources: '资源目录', search: '检索实验', model: '模型与语义', discovery: '退款业务查证', trace: '关系导航', wiki: 'Wiki', architecture: '架构核对', tasks: '任务空间', update: '资源更新' }
+const panels = { resources: '资源目录', search: '检索实验', model: '模型与语义', discovery: '退款业务查证', planning: '查询计划比较', trace: '关系导航', wiki: 'Wiki', architecture: '架构核对', tasks: '任务空间', update: '资源更新' }
 const roles = { developer: '开发者', support: '客服', sre: '值班 SRE', incident_commander: '事故负责人', executive: '经营负责人', strategy: '战略分析', revops: '营收运营', product: '产品负责人' }
 const scenarioNames = { change: '代码变更影响', incident: '退款积压处置', strategy: '经营分析' }
 
@@ -45,7 +53,7 @@ async function refresh() {
 async function start(fresh: boolean) {
   busy.value = true; error.value = ''; result.value = null
   try {
-    if (fresh) { await request('/api/session', {}); selectedTask.value = '' }
+    if (fresh) { await request('/api/session', {}); selectedTask.value = ''; clearDiscovery() }
     await refresh()
     status.value = '本地 Python 已连接 · 实验自动保存'
     if (fresh) window.dispatchEvent(new Event('northstar-space-created'))
@@ -56,6 +64,11 @@ async function run(payload: any) {
   busy.value = true; error.value = ''; result.value = null
   try {
     result.value = await request('/api/lab', { ...payload, role: role.value })
+    if (payload.op === 'discovery') {
+      comparisonDiscovery.value = discoveryResult.value
+      discoveryResult.value = result.value
+      previousDiscovery.value = result.value.continuation_input
+    }
     origin.value = '本地 Python 实际返回（业务数据为教学模拟）'
     if (payload.op === 'task.create') selectedTask.value = result.value.id
     await refresh()
@@ -64,6 +77,7 @@ async function run(payload: any) {
 function experiment() {
   const op = panel.value === 'update' ? 'policy.update' : panel.value
   run({ op, question: question.value, seed: seed.value, note: note.value,
+    estimated_budget: estimatedBudget.value,
     disabled_channels: disabledChannels.value, valid_at: validAt.value, observed_at: observedAt.value })
 }
 function taskAction(op: string) {
@@ -86,10 +100,12 @@ watch(key, () => {
   panel.value = lesson.value.panel; role.value = lesson.value.role; sourceIndex.value = 0
   question.value = lesson.value.request?.question || '取消事件有哪些 consumer 影响'
   disabledChannels.value = lesson.value.request?.disabled_channels || []
+  estimatedBudget.value = lesson.value.request?.estimated_budget || 60
   scenario.value = lesson.value.scenario || 'change'; result.value = null; error.value = ''
 })
 watch(role, async () => {
   result.value = null; error.value = ''; selectedTask.value = ''; tasks.value = []
+  clearDiscovery()
   if (ready.value && hasSession.value) {
     busy.value = true
     try { await refresh() } catch (e: any) { error.value = e.message } finally { busy.value = false }
@@ -98,6 +114,7 @@ watch(role, async () => {
 async function spaceChanged() {
   if (!ready.value) return
   result.value = null; selectedTask.value = ''; error.value = ''
+  clearDiscovery()
   try { await refresh(); status.value = '本地 Python 已连接 · 实验自动保存' }
   catch (e: any) { error.value = e.message; hasSession.value = false }
 }
@@ -147,6 +164,10 @@ onUnmounted(() => window.removeEventListener('northstar-space-created', spaceCha
     </div>
     <label v-if="panel === 'trace'" class="ns-label">起点对象<input v-model="seed" :disabled="busy" /></label>
     <p v-if="panel === 'discovery'" class="ns-build">本实验从“消费者退款能力”开始，运行明确写好的查证路线，按四步展示结果。队列标识从关系中的监控入口取得；本次只读资料和状态，不调用模型，也不执行重放。</p>
+    <div v-if="panel === 'planning'" class="ns-form">
+      <label class="ns-label">每条候选计划的教学估计预算<input v-model.number="estimatedBudget" type="number" min="1" max="1000" step="1" :disabled="busy" /></label>
+      <p class="ns-muted">固定任务：为 teaching-eu 的 refund-queue 准备政策、关系、手册和当前观察。默认60；30只运行定向路线；20不执行读取。对照实验会运行所有预算内候选，总开销高于只运行选中计划。</p>
+    </div>
     <div v-if="panel === 'update'"><label class="ns-label">追加到政策副本的说明<textarea v-model="note" maxlength="500" :disabled="busy" /></label><p class="ns-muted">由 product 角色维护。将重建当前空间资源，并标记旧任务需重新取证；不修改仓库原文件。</p></div>
     <template v-if="panel === 'tasks'">
       <div class="ns-task-create">
@@ -167,10 +188,16 @@ onUnmounted(() => window.removeEventListener('northstar-space-created', spaceCha
       </div>
     </template>
     <button v-else class="ns-run" :disabled="!canRun" @click="experiment">{{ panel === 'update' ? '更新政策并重建' : panel === 'discovery' ? '执行退款查证路线' : '执行当前实验' }}</button>
-    <div v-if="['tasks', 'discovery'].includes(panel)" class="ns-clock"><span>教学时钟：{{ clock || '尚未连接' }}</span><button :disabled="!canRun" @click="run({ op: 'clock.advance' })">推进61秒，测试过期</button><small>时钟不会随现实等待自动前进。推进后再次执行可检查观察过期；新建空间可重做实验。</small></div>
+    <button v-if="panel === 'discovery'" :disabled="!canRun || !previousDiscovery" @click="run({ op: 'discovery', previous_package: previousDiscovery })">携上次引用重新调查</button>
+    <div v-if="['tasks', 'discovery', 'planning'].includes(panel)" class="ns-clock"><span>教学时钟：{{ clock || '尚未连接' }}</span><button :disabled="!canRun" @click="run({ op: 'clock.advance' })">推进61秒，测试过期</button><small>时钟不会随现实等待自动前进。推进后再次执行可检查观察过期；新建空间可重做实验。</small></div>
     <p v-if="busy" role="status">正在调用本地 Python…</p>
     <p v-if="error" class="ns-warning" role="alert">{{ error }}</p>
     <div v-if="result" class="ns-output" aria-live="polite"><p class="ns-origin">{{ origin }}</p><LabResult :result="result" /></div>
+    <details v-if="panel === 'discovery' && comparisonDiscovery" class="ns-block">
+      <summary>对照上一次退款查证的完整结果</summary>
+      <p class="ns-muted">这是上一次读取时的材料，不代表当前状态。仅暂存在当前页面；刷新、离开页面、切换角色或新建空间后清除，不保存到服务端。</p>
+      <LabResult :result="comparisonDiscovery" />
+    </details>
     <div class="ns-reading"><p><strong>观察结果：</strong>{{ lesson.expect }}</p><p><strong>再试一个边界：</strong>{{ lesson.failure }}</p></div>
     <details class="ns-source" :open="Boolean(props.lesson)"><summary>阅读这一步的真实实现</summary><label class="ns-label">源码与输入位置<select v-model="sourceIndex"><option v-for="(item, index) in lesson.sources" :key="`${item.path}:${item.symbol}`" :value="index">{{ item.path.split('/').pop() }} · {{ item.symbol }}</option></select></label><p class="ns-citation">{{ source.path }}:{{ source.start }} · 源码标识 {{ catalog.source_revision }}</p><pre><code>{{ source.code }}</code></pre><p class="ns-muted">片段在构建书站时从真实源文件提取。修改源码后，停止旧服务并重新运行 npm run lab，更新页面和执行端。</p><p>在仓库根目录验证这一步：</p><pre><code>{{ lesson.test }}</code></pre></details>
   </section>

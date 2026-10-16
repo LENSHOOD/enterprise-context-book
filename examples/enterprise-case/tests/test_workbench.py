@@ -221,6 +221,22 @@ class LabHTTPTest(unittest.TestCase):
         self.assertEqual(403, self.request("/api/health", headers={"Host": "other.example"})[0])
         self.assertEqual(403, self.request("/api/session", {}, {"X-Northstar-Lab": ""})[0])
 
+    def test_discovery_continuation_fits_http_contract_and_rechecks_expiry(self):
+        status, _, headers = self.request("/api/session", {})
+        self.assertEqual(200, status)
+        cookie = {"Cookie": headers["Set-Cookie"].split(";")[0]}
+        status, body, _ = self.request("/api/lab", {"op": "discovery", "role": "sre"}, cookie)
+        self.assertEqual(200, status)
+        previous = json.loads(body)["continuation_input"]
+        payload = {"op": "discovery", "role": "sre", "previous_package": previous}
+        self.assertLess(len(json.dumps(payload).encode()), 16384)
+        self.assertEqual(200, self.request("/api/lab", {"op": "clock.advance", "role": "sre"}, cookie)[0])
+        status, body, _ = self.request("/api/lab", payload, cookie)
+        self.assertEqual(200, status)
+        result = json.loads(body)
+        self.assertFalse(result["observations"])
+        self.assertFalse(result["continuation"]["old_text_imported"])
+
     def test_static_paths_cannot_expose_database_or_symlink(self):
         (self.site / "secret.txt").symlink_to(self.root / "lab.sqlite3")
         self.assertEqual(403, self.request("/secret.txt")[0])

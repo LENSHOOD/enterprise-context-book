@@ -2,6 +2,7 @@
 from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
+from resource_pipeline import strategy_batch
 from strategy_resources import (StrategyResources, ROOT, BUCKETS, RELATIONS, DIMENSIONS, PERIODS, STRATEGY_QUESTION_ID)
 
 
@@ -113,6 +114,9 @@ class StrategicContext(StrategyResources):
             ("L5", "运行状态与工作历史", ("observations", "events")),
         ]
         objective = self.data["strategic_objectives"][0]
+        # Reuse the canonical adapter rather than invent a second version scheme
+        # for standalone metric reads outside the platform's ContextFlow.
+        catalog = {doc["id"]: doc for doc in strategy_batch(self).documents}
         result = {
             **base, "status": "ready_for_review", "strategic_objective": objective,
             "semantic_contract": {"schema": self.data["schema"], "relations": RELATIONS,
@@ -123,7 +127,8 @@ class StrategicContext(StrategyResources):
                               + [{"level": "L6", "name": "Agent 执行", "read_only": True}],
             "enterprise_context": {bucket: self.data[bucket] for bucket in BUCKETS},
             "relations": self.data["relations"],
-            "evidence": [{"id": o["id"], "citation": o["evidence"], "authority": "authored_fixture"}
+            "evidence": [{"id": o["id"], "citation": o["evidence"], "authority": "authored_fixture",
+                          "version": catalog[o["id"]]["version"]}
                          for o in self.by_id.values()],
             "performance": {"total": total, "decomposition_views": decompositions,
                             "target_gap": total["h2"] - objective["target_value"],

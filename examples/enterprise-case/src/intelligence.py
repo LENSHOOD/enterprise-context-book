@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import secrets
 from context_flow import ContextFlow
+from context_delivery import deliver, recheck_previous
 
 
 DEMO_SOURCE = """# 退款限流核对说明
@@ -80,7 +81,8 @@ def materialize_resources(data: Path, releases: list[dict]) -> None:
         values["manifest"]["sources"].append(registered)
         values["knowledge"].append({**registered, "lineage": {"derived_from": [citation]}, "text": source["text"]})
         values["edges"].extend({"from": link["from"], "type": rel, "to": identity,
-            "evidence_tier": "asserted", "evidence": citation, "quote": link["quote"]} for link in candidate["links"])
+            "evidence_tier": "asserted", "statement_kind": "description", "review_status": "reviewed_fixture",
+            "evidence": citation, "quote": link["quote"]} for link in candidate["links"])
         values["mappings"]["mappings"].append({"source": identity, "owner": source["owner"]["user_id"],
             "produces": [kind, rel], "identityRule": "registered source id + revision", "refreshMode": "on_approval"})
         values["questions"]["questions"].append({"id": "CQ-" + identity, "question": candidate["question"],
@@ -107,7 +109,9 @@ class ContextAssistant:
         return item
 
     def tools(self, actor) -> list[str]:
-        result = ["search", "trace", "wiki", "clarify", "finish"]
+        result = ["search", "trace", "lookup", "wiki", "clarify", "finish"]
+        if self.w.platform.allowed(self.w.platform.resources.refund_records, actor):
+            result.append("business")
         if actor.role == "sre":
             result.append("observe")
         if actor.role in self.w.platform.strategy_context.data["fixture"]["acl"]:
@@ -134,6 +138,18 @@ class ContextAssistant:
             record = {"id": "req-" + secrets.token_hex(6), "owner": asdict(actor),
                 "goal": text(payload.get("goal"), "问题"), "mode": mode, "state": "drafting",
                 "manifest": self.w.platform.manifest, "history": [], "attempts": 0, "snapshots": []}
+            if payload.get("previous_package") is not None:
+                previous = payload["previous_package"]
+                # Validate before retaining only bounded reference metadata. Never
+                # retain the old package's prose, findings, or claimed authority.
+                recheck_previous(previous, self.w.platform, actor)
+                metadata = lambda value: value if isinstance(value, str) and len(value) <= 200 else None
+                record["continuation_input"] = {
+                    "manifest": metadata(previous.get("manifest")),
+                    "evidence": [{"id": text(item["id"], "上轮引用ID", 150),
+                                  "version": metadata(item.get("version"))}
+                                 for item in previous.get("evidence", [])]}
+                record["continuation"] = recheck_previous(record["continuation_input"], self.w.platform, actor)
             self.state["requests"][record["id"]] = record
             return self.public(record)
         if op in ("assist.get", "assist.confirm"):
@@ -231,6 +247,11 @@ class ContextAssistant:
             context = {"purpose": "query", "conditions": record["conditions"], "answer": record.get("answer", ""),
                 "catalog": self.catalog(actor), "tools": self.tools(actor), "remaining_steps": MAX_STEPS-record["attempts"],
                 "history": record["history"]}
+        if collection == "requests" and "continuation_input" in record:
+            # Visibility can change after start/confirmation. Only freshly checked
+            # IDs and server-generated flags may enter the model's next context.
+            record["continuation"] = recheck_previous(record["continuation_input"], self.w.platform, actor)
+            context["continuation"] = deepcopy(record["continuation"])
         return record, context
 
     def pending(self, record: dict, value: dict) -> None:
@@ -300,9 +321,13 @@ class ContextAssistant:
         action, args = decision["action"], decision["args"]
         if action not in self.tools(actor):
             raise ValueError("该角色没有这个取证工具；模型不能增加能力")
-        keys = {"search": {"question"}, "trace": {"seed"}, "wiki": set(), "observe": {"resource"},
+        keys = {"search": {"question"}, "trace": {"seed"}, "lookup": {"ids"}, "business": set(), "wiki": set(), "observe": {"resource"},
                 "metric": set(), "clarify": {"question"}, "finish": {"summary", "missing"}}
-        exact(args, keys[action])
+        if action == "trace":
+            if not isinstance(args, dict) or "seed" not in args or set(args) - {"seed", "max_hops", "relation_types", "allow_inverse_navigation"}:
+                raise ValueError("关系查询字段不符合约定")
+        else:
+            exact(args, keys[action])
         p = self.w.platform
         flow = ContextFlow(p)
         if action == "clarify":
@@ -312,32 +337,79 @@ class ContextAssistant:
             summary = text(args["summary"], "材料说明")
             missing = strings(args["missing"], "缺口")
             reads = [e for e in record["history"] if e.get("result") is not None and
-                     e.get("decision", {}).get("action") in ("search", "trace", "wiki", "observe", "metric")]
+                     e.get("decision", {}).get("action") in ("search", "trace", "lookup", "business", "wiki", "observe", "metric")]
             if not reads:
                 raise ValueError("至少执行一次取证后才能交付上下文")
             package = {"request_id": record["id"], "principal": asdict(actor), "manifest": p.manifest,
                 "task_conditions": deepcopy(record["conditions"]), "captured_at": self.w.now().isoformat(),
                 "interpretation": {"text": summary, "status": "model_proposal_needs_review"},
-                "materials": [{"tool": e["decision"]["action"], "step": e["step"], "result": deepcopy(e["result"])} for e in reads],
+                "materials": [{"tool": e["decision"]["action"], "args": deepcopy(e["decision"].get("args", {})),
+                               "step": e["step"], "result": deepcopy(e["result"])} for e in reads],
                 "missing": missing, "allowed_tools": self.tools(actor), "business_task_completed": False}
-            # Re-check short-lived observations at handoff, not only at collection.
+            def observation_resource(item):
+                return (item["args"].get("resource") or
+                        (item["result"].get("observation") or {}).get("resource") or "refund-queue")
+            latest_observations = {observation_resource(item): item for item in package["materials"]
+                                   if item["tool"] == "observe"}
+            # Preserve superseded reads as audit material, but only the latest
+            # read of each resource can supply a current observation or gap.
             for item in package["materials"]:
                 if item["tool"] == "observe":
-                    current = p.get_status("refund-queue", actor)
+                    resource = observation_resource(item)
+                    if item is not latest_observations[resource]:
+                        item["status"] = "superseded"
+                        continue
+                    current = p.get_status(resource, actor)
                     if current is None or current != item["result"].get("observation"):
                         item["result"] = {"observation": None, "missing": ["队列观察已过期或发生变化"]}
                         package["missing"].append("队列观察已过期或发生变化，需要重新读取")
+            normalized = []
+            latest_metric = next((item for item in reversed(package["materials"])
+                                  if item["tool"] == "metric"), None)
+            for item in package["materials"]:
+                # Keep old clarification in the audit trail, not today's open questions.
+                if item["tool"] == "metric" and item is not latest_metric:
+                    continue
+                if item["tool"] == "observe" and item.get("status") == "superseded":
+                    continue
+                value = deepcopy(item["result"])
+                if item["tool"] == "observe":
+                    value["observations"] = [value.pop("observation")] if value.get("observation") else []
+                    value.pop("observation", None)
+                normalized.append(value)
+            shared = flow.assemble({"mode": "operational", "steps": [], "competency_question": None},
+                                   normalized, actor, record["id"])
+            package["missing"] = list(dict.fromkeys(shared["missing"] + package["missing"]))
+            shared.update(package)
+            if "continuation" in record:
+                shared["continuation"] = deepcopy(record["continuation"])
+            package = deliver(shared, conditions=record["conditions"])
             record.update(state="ready_for_review", package=package)
             record["snapshots"].append(deepcopy(package))
             return {"status": "ready_for_review", "note": "已交付材料，业务任务尚未宣告完成"}
         if action == "search":
-            result = flow.read("search", {"question": text(args["question"], "检索问题")}, actor)
+            result = flow.read("search", {"question": text(args["question"], "检索问题"), "limit": 8}, actor)
             return {"evidence": result["evidence"][:8]}
         if action == "trace":
             seed = text(args["seed"], "起点ID", 150)
             if seed not in {x["id"] for x in self.catalog(actor)}:
                 raise ValueError("起点不可用")
-            return flow.read("trace", {"seed": seed}, actor)
+            hops = args.get("max_hops", 2)
+            inverse = args.get("allow_inverse_navigation", False)
+            types = args.get("relation_types")
+            if type(hops) is not int or not 1 <= hops <= 8 or type(inverse) is not bool:
+                raise ValueError("关系导航最多八跳，方向开关必须是布尔值")
+            if types is not None and (not isinstance(types, list) or len(types) > 16 or
+                    any(not isinstance(t, str) or t not in p.domain_model["relations"] for t in types)):
+                raise ValueError("关系类型必须来自当前模型且不超过十六项")
+            return flow.read("trace", {**args, "seed": seed}, actor)
+        if action == "lookup":
+            ids = args["ids"]
+            if not isinstance(ids, list) or len(ids) > 40 or any(not isinstance(i, str) or len(i) > 150 for i in ids):
+                raise ValueError("定位对象必须是最多四十项的ID列表")
+            return flow.read("lookup", {"ids": ids}, actor)
+        if action == "business":
+            return flow.read("business", {}, actor)
         if action == "wiki":
             return flow.read("wiki", {}, actor)
         if action == "observe":

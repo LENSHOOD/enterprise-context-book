@@ -44,7 +44,7 @@ flowchart TB
   Read[查询、计算与视图生成<br/>程序]
   Assess[核对材料，必要时补查<br/>人或助手]
   Pack[组装上下文<br/>程序]
-  Package(本次任务上下文)
+  Package(本轮上下文包：发现、依据与缺口)
   Raw --> Build --> Check --> Review --> Compile --> Resources
   Request --> Plan --> Read --> Assess
   Resources --> Read
@@ -86,7 +86,7 @@ flowchart TB
 
 平台按计划执行各个读取工具。手册命中带来源，队列读数带采样时间；无权限或已经过期的材料不能直接作为依据。人或助手检查返回结果，缺少关键条件时继续补查，或者向请求方说明缺口。
 
-准备交付时，程序把任务身份、资源版本、证据、观察、工作记录和缺口组织成上下文包。人或业务 Agent 使用这些材料形成诊断。若决定重放消息，再进入独立的“预览—批准—执行—验证”流程；准备上下文本身不改变队列。
+调查还可以读取业务明细，计算申请分别停在哪个阶段。平台将有依据的观察和计算结果列成发现，同时保留证据、适用范围与缺口。人或业务 Agent 把这份包与自己的目标和工作进展放在一起，继续判断与行动。内部助手可以分析材料、提出解释，但未经核实的解释仍标为待复核。若决定重放消息，再进入独立的“预览—批准—执行—验证”流程。
 
 经营分析和变更影响分析经过相同阶段。经营问题的计划包含指标读取与计算，遇到未确认口径先暂停；变更问题的计划包含事件关系导航。它们共享流程，专用工具分别处理自己的数据和规则。
 
@@ -100,10 +100,13 @@ flowchart TB
 | 原文解析与对象编译 | `build_baseline.py`、`build_knowledge.py` | Markdown / JSON 读取、Python AST 提取函数、SHA-256 检测内容变化 |
 | 来源专门检查 | `modeling.py`、`strategy_resources.py` | 领域模型和实例检查；经营指标、快照及分解对账检查 |
 | 资源建设与调查判断 | `intelligence.py`、`model_gateway.py` | 结构化候选、任务确认、逐步工具选择；可接模型 HTTP 接口 |
-| 统一上下文流程 | `context_flow.py` | `plan()` 形成计划，`read()` 执行读取，`assemble()` 汇总材料，`run()` 串起流程 |
+| 统一上下文流程 | `context_flow.py` | `plan()` 形成计划，`execute()` 按依赖调用 `read()`，`assemble()` 汇总材料，`run()` 串起流程 |
+| 候选计划与取证核验 | `query_planning.py` | C5-plan 按共同证据要求比较两条退款路线，先按教学估计选择，再核验实际结果 |
 | 资料检索 | `retrieval.py` | BM25、同义词与词集合重合度、RRF 排名融合 |
 | 关系与阅读视图 | `knowledge_views.py`、`resource_views.py` | 内存邻接表、有界遍历、模板 Wiki、架构核对、从资源生成 Mermaid 图 |
 | 经营数据取证 | `strategy.py` | 查询时确认指标契约，读取已校验快照并计算差异 |
+| 退款业务记录 | `refund_records.py` | 按申请与尝试各自的身份校验和计数，返回固定快照及粒度 |
+| 统一调查交付 | `context_delivery.py` | 连接发现与引用，保留缺口、使用范围及续问所需的版本线索 |
 | 当前观察 | `northstar.py` | 运行适配入口、权限和新鲜度检查 |
 | 任务身份与记忆 | `task_state.py` | 身份、成员检查和任务事件 |
 | 受控动作 | `action_lifecycle.py` | 预览、批准、执行、验证及幂等回执 |
@@ -112,21 +115,27 @@ flowchart TB
 flowchart TB
   Entry[NorthstarPlatform.context]
   Plan[plan：形成明确计划]
-  Loop[run：逐步执行]
+  Loop[execute：逐步执行并记录]
   Read[read：共用读取入口]
-  Tools[读取工具<br/>search · trace · observe<br/>metric · wiki]
+  Tools[读取工具<br/>search · trace · lookup<br/>observe · metric · business · wiki]
+  Candidates[C5-plan：比较两条候选路线]
   Assemble[assemble：共用组装器]
   Assistant[ContextAssistant<br/>逐步提出取证建议]
-  Package(材料、来源、缺口与边界)
+  Delivery[deliver：连接发现与证据]
+  Package(本轮发现、引用、缺口与边界)
   Entry --> Plan --> Loop --> Read
+  Candidates -->|预算内候选供教学对照| Loop
   Read --> Tools
   Tools -->|返回结果| Loop
-  Loop -->|实际返回结果| Assemble --> Package
+  Loop -->|实际返回结果| Assemble --> Delivery --> Package
   Assistant -->|经校验的单步建议| Read
   Read -->|结果与缺口| Assistant
+  Assistant -->|检查后的实际结果| Assemble
 ```
 
-图中的 `plan()` 是把调用方已经明确的选择变成计划，不调用模型猜测意图。读者可以手工指定事件起点、队列或经营模式；也可以使用 C9，由助手先提出任务理解，再根据每步结果选择读取工具。两种方式复用 `ContextFlow.read()`。固定计划由 `assemble()` 组装业务任务包；C9 将每次读取结果保留在调查包中，并附上待复核的解释。
+图中的 `plan()` 是把调用方已经明确的选择变成计划，不调用模型猜测意图。读者可以手工指定事件起点、队列或经营模式；也可以使用 C9，由助手先提出任务理解，再根据每步结果选择读取工具。固定计划、C4 的发现路线和 C9 共用 `ContextFlow.read()`、`assemble()` 与 `deliver()`。C9 还保留逐步记录和待复核的解释。不同入口不要求读取相同材料，但都要说明查明了什么、依据在哪里、还缺什么。
+
+第17章的 C5-plan 进一步比较同一取证要求的两条读取路线。它先按明确的教学估计预选计划，再通过同一执行器运行对照，核对实际证据。这个实验只覆盖已知退款队列的材料准备；默认业务任务与 C9 仍使用各自已有的选工具方式。
 
 经营分析在计划中使用 `metric` 工具，与 `search`、`trace` 和 `observe` 处于同一层。`strategy.py` 负责本次指标口径确认与计算，任务身份、资源版本和结果汇总则由共同流程处理。字段随材料而异：经营任务增加 `performance` 和指标契约，退款任务加入 `observations`，变更任务突出 `relations`。
 
