@@ -22,6 +22,8 @@ from modeling import semantic_slice
 from intelligence import ContextAssistant, materialize_resources
 from model_gateway import ModelGateway, ModelError
 from resource_discovery import investigate_refund
+from context_delivery import deliver
+from query_planning import compare_refund_plans
 
 DATA = Path(__file__).parents[1] / "data"
 ROLES = ("developer", "support", "sre", "incident_commander", "executive", "strategy", "revops", "product")
@@ -197,7 +199,7 @@ class Workspace:
             task["state"] = "ready_for_review"
         package["task_state"] = (self.platform.task_state(task["id"], actor)
                                  if task["kind"] == "incident" else task["state"])
-        task["package"] = package
+        task["package"] = deliver(package)
         task["snapshots"].append(deepcopy(package))
         task["stale"] = False
         return self.task_view(task, actor)
@@ -271,7 +273,9 @@ class Workspace:
         if op == "architecture":
             return p.architecture_consistency(actor)
         if op == "discovery":
-            return investigate_refund(p, actor)
+            return investigate_refund(p, actor, previous=payload.get("previous_package"))
+        if op == "planning":
+            return compare_refund_plans(p, actor, payload.get("estimated_budget", 60))
         if op == "policy.update":
             return self.update_policy(payload, actor)
         if op == "task.create":

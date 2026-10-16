@@ -15,6 +15,7 @@ from pathlib import Path
 from build_knowledge import compile_knowledge
 from modeling import compile_domain_model, validate_knowledge_base
 from strategy_resources import StrategyResources, BUCKETS, RELATIONS
+from refund_records import validate_records
 
 ROOT = Path(__file__).parents[1]
 
@@ -74,8 +75,10 @@ def strategy_batch(resources):
                         data["fixture"]["acl"], data["fixture"]["as_of"],
                         attributes=deepcopy(item), tenant=data["tenant"], system="sales")
                  for bucket in BUCKETS for item in data[bucket]]
-    edges = [{**edge, "evidence_tier": "candidate" if edge["type"] == "POTENTIALLY_RELATED_TO"
-              else "asserted", "time": deepcopy(documents[0]["time"])} for edge in data["relations"]]
+    edges = [{**edge, "evidence_tier": "asserted",
+              "review_status": "candidate" if edge["type"] == "POTENTIALLY_RELATED_TO" else "reviewed_fixture",
+              "statement_kind": "hypothesis" if edge["type"] == "POTENTIALLY_RELATED_TO" else "description",
+              "time": deepcopy(documents[0]["time"])} for edge in data["relations"]]
     model = {"entityTypes": {type_name(name): {"identity": ["id"], "meaning": type_name(name)} for name in BUCKETS},
              "relations": {name: {"from": endpoint(ends[0]), "to": endpoint(ends[1])}
                            for name, ends in RELATIONS.items()}, "glossary": []}
@@ -115,7 +118,8 @@ def refund_batch(data_dir):
     for edge in mapping["relations"]:
         check_passage(edge)
         edges.append({**edge, "evidence": citation + "#" + edge["anchor"],
-                      "evidence_tier": "asserted", "time": deepcopy(documents[0]["time"])})
+                      "evidence_tier": "asserted", "statement_kind": "description",
+                      "review_status": mapping["status"], "time": deepcopy(documents[0]["time"])})
     return ResourceBatch("refund-journey", documents, edges, mapping["model"],
                          {"valid": True, "reviewer": mapping["reviewer"],
                           "source_hash": hashlib.sha256(raw.encode()).hexdigest()})
@@ -165,7 +169,7 @@ def validate_catalog(documents, edges, model):
 
 
 class ResourceSnapshot:
-    def __init__(self, batches, strategy, claims, runtime):
+    def __init__(self, batches, strategy, claims, runtime, refund_records):
         self.documents = [doc for batch in batches for doc in batch.documents]
         self.edges = [edge for batch in batches for edge in batch.edges]
         self.model = deepcopy(batches[0].model)
@@ -180,9 +184,11 @@ class ResourceSnapshot:
         self.model["version"] += "+resources." + fingerprint(self.model)[:12]
         self.model_validation = batches[0].validation
         self.strategy, self.claims, self.runtime = strategy, claims, runtime
+        self.refund_records = validate_records(refund_records)
         self.manifest = "northstar-" + fingerprint({"documents": self.documents, "edges": self.edges,
             "model": self.model, "claims": claims, "runtime_source": runtime,
-            "strategy": strategy.data, "validation": [batch.validation for batch in batches]})[:12]
+            "strategy": strategy.data, "refund_records": refund_records,
+            "validation": [batch.validation for batch in batches]})[:12]
         self.report = {"manifest": self.manifest, "validation": self.validation,
             "sources": [{"adapter": batch.name, "objects": len(batch.documents),
                          "relations": len(batch.edges), "validation": batch.validation}
@@ -196,7 +202,8 @@ def compile_resources(data_dir=ROOT / "data"):
     strategy = StrategyResources(data_dir / "strategy-context.json")
     batches = [operational_batch(data_dir), strategy_batch(strategy), refund_batch(data_dir)]
     snapshot = ResourceSnapshot(batches, strategy,
-        read_json(data_dir / "architecture-claims.json"), read_json(data_dir / "runtime.json"))
+        read_json(data_dir / "architecture-claims.json"), read_json(data_dir / "runtime.json"),
+        read_json(data_dir / "refund-records.json"))
     by_id = {doc["id"]: doc for doc in snapshot.documents}
     for identity, status in snapshot.runtime.items():
         resource = by_id.get(identity)

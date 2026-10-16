@@ -40,6 +40,7 @@ C7 输出中的 `context_layers` 用 L0—L5 导航企业内容，L6 保存只�
 | C3 | 从能力问题和企业语言编译、验证知识模型 | `data/modeling/`、`src/modeling.py` | 术语边界、时间边、实例闭合测试 |
 | C4 | 从退款业务入口查到监控与手册，比较关系、Wiki 和架构视图 | `resource_discovery.py`、`knowledge_views.py`、`build_knowledge.py` | 只读查证、角色边界、观察过期、正反向导航、Wiki、EA 测试 |
 | C5 | 明确取证计划，组装上下文，记录工作进展 | `context_flow.py`、`TaskMemory` | 共用流程、Context Package 与持久恢复测试 |
+| C5-plan | 按同一证据要求比较两条查询路线，检查预算与实际缺口 | `query_planning.py`、`planning_demo.py` | `test_query_planning.py` |
 | C6 | SRE 诊断、负责人确认、SRE 执行并验证 | `action_demo.py` | `test_action_boundary.py` |
 | C7 | 在共用流程中进行只读经营分析：指标、分解、企业背景、假设和缺口 | `context_flow.py`、`strategy.py`、`data/strategy-context.json` | `test_context_flow.py`、`test_strategy.py` |
 | C8 | 从原文提出类型、关系和能力问题，审核后重建模型与视图 | `src/intelligence.py` | 引用、类型、审核、修订和重启测试 |
@@ -57,12 +58,17 @@ C0—C9 是练习编号。初始资料和模型保留了作者人工整理的结
 | `knowledge_views.py` / `resource_views.py` | 关系查询、Wiki、架构核对及从实际资源生成关系图 |
 | `resource_discovery.py` / `resource_demo.py` | 网页与命令行共用的退款查证路线，以及命令行入口 |
 | `context_flow.py` / `strategy.py` | 共同查询流程，以及经营工具的口径确认与计算 |
+| `query_planning.py` / `planning_demo.py` | 两个退款候选计划、教学成本选择、实际证据核验及命令行对照 |
 | `task_state.py` / `action_lifecycle.py` | 任务身份、记忆及独立的动作审批与验证 |
 | `northstar.py` | 组装上述能力，提供调用入口、权限与时间筛选、运行观察 |
 | `intelligence.py` / `model_gateway.py` | 有边界的资源建议与上下文调查 |
 | `workbench.py` / `lab_server.py` | 承载本地练习的保存、HTTP 与网页接口 |
 
-从业务入口发现运行资源：在工作台选择 **C4 → 退款业务查证**，使用 SRE 角色执行；或在仓库根目录执行 `python3 examples/enterprise-case/src/resource_demo.py`。两者共用 `resource_discovery.py`：先搜索退款能力，再沿流程、服务和部署关系发现监控入口，返回对象正文、引用路径、手册及842条初始观察。网页按四步呈现结果，可切换角色或推进61秒验证边界。路线明确写在代码中，不调用模型、不执行业务操作，也尚未自动进入 C9 或 C6 的任务包。C4 的关系导航、Wiki 和架构核对仍可切换使用。
+从业务入口发现运行资源：在工作台选择 **C4 → 退款业务查证**，使用 SRE 角色执行；或在仓库根目录执行 `python3 examples/enterprise-case/src/resource_demo.py`。两者共用 `resource_discovery.py`，沿业务、部署到监控，再读取手册及业务记录。初始队列观察是842条消息，独立业务快照有8笔申请、6次尝试、7笔未完成申请；这些数字不能直接对账。C4固定路线和C9助手共用读取、组装与 `context_delivery.deliver()`，交付发现、引用和缺口；C6动作仍须另建业务任务、准备并批准。C4的关系导航、Wiki和架构核对仍可切换使用。
+
+`data/refund-records.json` 保存合成业务快照，由共同资源编译检查身份和关联，`refund_records.read_records()` 按申请粒度统计。`findings` 仅列可复核的观察与计算，模型解释保留为待复核提议。`package_digest` 是内容散列，不是签名或授权凭证。
+
+续问使用包内的 `continuation_input`：只传Manifest与证据ID、版本，避免传输整份正文。C4选择“携上次引用重新调查”，C9选择“携上次引用新建调查”；平台按当前权限、来源和时效重新读取。可先更新政策或推进61秒，再检查版本变化和观察缺口。旧包中被改写的文字不会导入新包。
 
 `data/refund-map.json` 对应 `data/raw/business/refund-journey.md` 的已核对解释，定义业务步骤、例外与部署联系。该来源进入同一个 `compile_resources()`，关系图随 `npm run lab:catalog` 自动生成。书中的图是构建时固定快照，修改资料后要重新构建；实时 Wiki 与查询在本地使用当前资源。
 
@@ -122,6 +128,10 @@ python3 src/northstar.py --architecture-consistency --role developer
 python3 src/northstar.py "退款积压如何排查" \
   --role sre --runtime-resource refund-queue --task INC-1042
 
+# C5-plan：同一退款材料要求，比较两条路线；预算30时只运行定向路线。
+python3 src/planning_demo.py
+python3 src/planning_demo.py --estimated-budget 30
+
 # C6：SRE 准备动作，incident_commander 确认，SRE 执行并验证。
 python3 src/action_demo.py
 
@@ -141,6 +151,8 @@ python3 -m unittest discover -s tests -v
 C3 的三条能力问题验证与 C7 的经营快照校验由不同适配器承担，共同编译入口执行这些专门检查，再合并检查并发布。C7 检查关系类型、字段引用、指标可比性、范围及分解对账，不套用 C3 的连通检查。H1/H2 数字来自 `2027-01-02` 的虚构完整半年快照，单位为千美元，与退款模拟时钟分开。
 
 动作示例的 `resolved` 仅表示模拟队列下降、错误率未恶化以及观察检查通过；它不要求队列清空或逐项退款成功。验证读取同一模拟状态，独立业务验证和拒绝后的同任务重新诊断入口仍需实现。CLI 的任务记忆留在进程内；Web 应用保存核心状态及三条工作线的工作事件，C7 也能记录口径确认、笔记、快照和人工复核。
+
+查询计划对照以已知 `refund-queue`、`teaching-eu` 为范围，要求政策与手册正文、业务部署关系和新鲜观察。两条服务端模板经同一 `ContextFlow.execute/read/assemble` 运行；初始估计47与21为手写教学单位，实际返回量与读取耗时另行记录。默认预算60按每条候选判断，对照会执行两条，不能当成整次实验成本上限。预算30只执行定向路线，20不执行读取；无权、过期、关系缺失和环境不符都会使证据检查不完整。它不调用模型、不执行退款、不替换默认 C5 或 C9 路线，也没有实现通用优化器或生产预算保证。
 
 ## 角色边界
 

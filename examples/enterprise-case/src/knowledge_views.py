@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from datetime import datetime
 
 
 def trace_dependency(
@@ -114,15 +115,31 @@ def compare_architecture_claims(
         if in_scope(claim) and claim["from"] in visible_ids and claim["to"] in visible_ids
     }
     evidence: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+    not_comparable = []
+    def comparable(edge):
+        if any(edge.get(field) != scope.get(field) for field in ("environment", "implementation_version")):
+            return False
+        envelope = edge.get("time", {})
+        if not envelope or not scope.get("valid_at") or not scope.get("observed_at"):
+            return False
+        parse = lambda value: datetime.fromisoformat(value.replace("Z", "+00:00"))
+        instant, known = parse(scope["valid_at"]), parse(scope["observed_at"])
+        return (parse(envelope["valid_from"]) <= instant and
+                (not envelope.get("valid_to") or instant < parse(envelope["valid_to"])) and
+                parse(envelope["observed_at"]) <= known)
     for edge in edges:
         key = (edge["from"], edge["type"], edge["to"])
         if (
             in_scope(edge)
-            and edge["evidence_tier"] in {"deterministic", "resolved", "observed"}
+            and edge.get("statement_kind") in {"implementation", "observation"}
+            and edge.get("review_status") == "reviewed_fixture"
             and edge["from"] in visible_ids
             and edge["to"] in visible_ids
         ):
-            evidence[key].append(edge)
+            if comparable(edge):
+                evidence[key].append(edge)
+            else:
+                not_comparable.append({**edge, "comparison_status": "时间、环境或实现版本不匹配，不能据此判断一致"})
 
     declared = set(claims)
     evidenced = set(evidence)
@@ -142,6 +159,7 @@ def compare_architecture_claims(
         }
 
     return {
+        "not_comparable": not_comparable,
         "declared_and_evidenced": [
             {**claim_record(key), "evidence": evidence_record(key)["evidence"]}
             for key in sorted(declared & evidenced)

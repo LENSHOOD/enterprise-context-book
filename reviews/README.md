@@ -30,4 +30,6 @@
 
 近期复核：[C4 退款业务查证交互实验（rc.28）](C4_REFUND_DISCOVERY_2026-10-11.md)。
 
-最新复核：[企业资源的定义、记录与视图（rc.29）](RESOURCE_REPRESENTATION_2026-10-12.md)。
+近期复核：[企业资源的定义、记录与视图（rc.29）](RESOURCE_REPRESENTATION_2026-10-12.md)。
+
+最新复核：[资源建设、调查与交付修订（rc.30）](CONTEXT_INVESTIGATION_2026-10-16.md)，纳入[查询规划与优化](QUERY_OPTIMIZATION_2026-10-14.md)。

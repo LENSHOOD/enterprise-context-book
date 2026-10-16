@@ -2,15 +2,19 @@
 import { computed } from 'vue'
 import LabFields from './LabFields.vue'
 import RefundDiscovery from './RefundDiscovery.vue'
+import PlanComparison from './PlanComparison.vue'
+import ContextDelivery from './ContextDelivery.vue'
 const props = defineProps<{ result: any }>()
 const data = computed(() => props.result?.package || props.result || {})
-const evidence = computed(() => data.value.evidence || data.value.documents || [])
+const evidence = computed(() => [...new Map((data.value.evidence || data.value.documents || []).map((item: any) => [`${item.id}@${item.version}`, item])).values()] as any[])
 const relations = computed(() => Array.isArray(data.value.relations) ? data.value.relations : [])
 const rest = computed(() => Object.fromEntries(Object.entries(data.value).filter(([key]) => ![
   'evidence', 'documents', 'relations', 'wiki', 'enterprise', 'memories', 'performance',
   'enterprise_context', 'context_layers', 'principal', 'trace_id', 'manifest',
   'id', 'kind', 'owner', 'conditions', 'state', 'preview', 'receipt', 'verification',
-  'snapshots', 'events', 'stale', 'package', 'approval_only', 'query_plan',
+  'snapshots', 'events', 'stale', 'package', 'approval_only', 'query_plan', 'plan_comparison', 'execution_report',
+  'delivery_schema', 'task_conditions', 'findings', 'references', 'business_records', 'interpretation',
+  'continuation', 'continuation_input', 'investigation_limits', 'package_digest', 'coverage',
 ].includes(key) && !(data.value.discovery_steps && [
   'discovery_steps', 'path', 'entry', 'observations', 'runbooks', 'missing', 'next_step', 'business_task_completed',
 ].includes(key)))))
@@ -34,6 +38,9 @@ const eventNames: Record<string, string> = { task_created: '创建任务', conte
     <div v-if="result.verification" class="ns-block"><h4>结果验证</h4><LabFields :value="result.verification" /><p class="ns-muted">队列下降只表示本次有限检查通过，不表示全部退款到账或根因已经修复。</p></div>
     <p v-if="result.package" class="ns-muted">下方材料来自最近一次构造的上下文快照。包内状态和允许工具记录的是当时情况；当前任务进展以上方状态与服务端检查为准。</p>
     <RefundDiscovery v-if="data.discovery_steps" :result="data" />
+    <ContextDelivery :package="data" />
+    <PlanComparison v-if="data.plan_comparison" :comparison="data.plan_comparison" />
+    <details v-if="data.execution_report" class="ns-block"><summary>查看计划读取的实际用量</summary><p class="ns-muted">统计计划中的读取调用，不包含核验、组装或后端内部扫描。返回条目可能重复。</p><LabFields :value="data.execution_report" /></details>
     <div v-if="data.query_plan?.length" class="ns-block"><h4>本次取证计划</h4>
       <p class="ns-muted">程序按以下计划读取材料。遇到尚未确认的指标口径，会先返回待确认项。</p>
       <ol><li v-for="(step, index) in data.query_plan" :key="index"><strong>{{ step.tool }}</strong> · {{ step.purpose }}<details><summary>查看查询条件</summary><LabFields :value="step.args" /></details></li></ol>
